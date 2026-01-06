@@ -1,6 +1,7 @@
 import sys
 import os
 import psycopg2
+import hashlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -25,7 +26,6 @@ def main():
     manager = KGManager(kg_conn, settings.CHROMA_PERSIST_DIR)
     
     # Create source DB hash
-    import hashlib
     hash_str = f"{settings.ECOMMERCE_HOST}:{settings.ECOMMERCE_PORT}:{settings.ECOMMERCE_DATABASE}"
     source_db_hash = hashlib.sha256(hash_str.encode()).hexdigest()
     

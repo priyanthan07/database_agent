@@ -3,7 +3,6 @@ import hashlib
 import time
 from uuid import uuid4
 from typing import Optional
-import psycopg2
 
 from ..models import KnowledgeGraph
 from ..extractors import SchemaExtractor
@@ -86,10 +85,11 @@ class KGBuilder:
             relationships = schema_data['relationships']
             
             phase1_duration = time.time() - phase1_start
+            
             logger.info(f"Phase 1 complete in {phase1_duration:.2f}s")
             logger.info(f"Extracted: {len(tables)} tables, {len(columns)} columns, {len(relationships)} relationships")
             
-            # PHASE 2: Generate AI descriptions (costs money)
+            # PHASE 2: Generate AI descriptions
             if generate_descriptions:
                 logger.info("PHASE 2: Generating AI descriptions")
                 phase2_start = time.time()
