@@ -1,6 +1,9 @@
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, TYPE_CHECKING
 from pydantic import BaseModel, Field
 from uuid import UUID, uuid4
+
+if TYPE_CHECKING:
+    from .column import Column
 
 class Table(BaseModel):
     """

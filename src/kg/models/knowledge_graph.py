@@ -47,4 +47,3 @@ class KnowledgeGraph(BaseModel):
         return [
             rel for rel in self.relationships if rel.from_table_name == table_name or rel.to_table_name == table_name
         ]
-        

@@ -215,8 +215,7 @@ class KGRepository:
             ) VALUES %s
             ON CONFLICT (entity_type, entity_id) DO UPDATE
             SET embedding_vector = EXCLUDED.embedding_vector,
-                embedding_text = EXCLUDED.embedding_text,
-                updated_at = CURRENT_TIMESTAMP
+                embedding_text = EXCLUDED.embedding_text
         """
         
         # Convert embeddings to bytes for storage
@@ -253,8 +252,7 @@ class KGRepository:
         query = """
             UPDATE kg_metadata
             SET status = %s,
-                error_message = %s,
-                last_updated = CURRENT_TIMESTAMP
+                error_message = %s
             WHERE kg_id = %s
         """
         
@@ -372,7 +370,8 @@ class KGRepository:
             # Parse JSON fields
             for row in results:
                 if row['typical_use_cases']:
-                    row['typical_use_cases'] = json.loads(row['typical_use_cases'])
+                    if isinstance(row['typical_use_cases'], str):
+                        row['typical_use_cases'] = json.loads(row['typical_use_cases'])
             
             return [dict(row) for row in results]
 
@@ -397,9 +396,12 @@ class KGRepository:
             # Parse JSON fields
             for row in results:
                 if row['sample_values']:
-                    row['sample_values'] = json.loads(row['sample_values'])
+                    if isinstance(row['sample_values'], str):
+                        row['sample_values'] = json.loads(row['sample_values'])
+                        
                 if row['enum_values']:
-                    row['enum_values'] = json.loads(row['enum_values'])
+                    if isinstance(row['enum_values'], str):
+                        row['enum_values'] = json.loads(row['enum_values'])
             
             return [dict(row) for row in results]
     
