@@ -26,7 +26,7 @@ class KnowledgeGraph(BaseModel):
     relationships: List[Relationship] = Field(default_factory=list)
     table_lookup: Dict[UUID, str] = Field(default_factory=dict)   # table_id -> table_name
     
-    class config:
+    class Config:
         frozen = False
         
     def get_table(self, table_name: str) -> Table:

@@ -48,7 +48,7 @@ class ColumnExtractor:
             stats = self._calculate_statistics(table.table_name, table.schema_name, column_name)
             
             # Detect PII
-            is_pii = self._is_pii_column(column_name, data_type, sample_values)
+            is_pii = self._is_pii_column_heuristic(column_name, data_type)
             
             column = Column(
                 table_id=table.table_id,

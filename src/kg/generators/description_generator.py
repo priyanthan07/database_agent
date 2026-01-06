@@ -56,14 +56,14 @@ class DescriptionGenerator:
             3. Three typical use cases for this table
         """
         try:
-            # Use structured output with Pydantic model via beta.chat.completions.parse
+            
             result = self.client.generate_structured_completion(
-                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a database expert. Analyze the table and provide structured information."},
                     {"role": "user", "content": prompt}
                 ],
-                response_format=TableDescriptionOutput,
+                response_model=TableDescriptionOutput,
+                model="gpt-4o-mini",
                 temperature=0.0
             )
             
@@ -164,7 +164,9 @@ class DescriptionGenerator:
             
         except Exception as e:
             logger.warning(f"OpenAI PII detection failed for '{column.qualified_name}': {e}. Using heuristic fallback.")
-            return None
+            pii_keywords = ['email', 'phone', 'ssn', 'social_security', 'credit_card', 'password', 'address']
+            column_lower = column.column_name.lower()
+            return any(keyword in column_lower for keyword in pii_keywords)
         
     def _format_sample_data(self, table: Table) -> str:
         """Format sample data for context"""

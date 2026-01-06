@@ -24,6 +24,6 @@ class Column(BaseModel):
     null_percentage: Optional[float] = None
     is_pii: bool = False
     
-    class config:
+    class Config:
         frozen = False
     

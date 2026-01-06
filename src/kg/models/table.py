@@ -19,5 +19,5 @@ class Table(BaseModel):
     
     columns: Dict[str, 'Column'] = Field(default_factory=dict)  # For in-memory representation
     
-    class config:
+    class Config:
         frozen = False

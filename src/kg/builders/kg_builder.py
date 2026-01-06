@@ -166,16 +166,16 @@ class KGBuilder:
                             'embedding': table_embeddings[table.table_name]
                         })
             
-            # Prepare column embeddings
-            for column in columns:
-                if column.qualified_name in column_embeddings:
-                    embeddings_data.append({
-                        'kg_id': kg_id,
-                        'entity_type': 'column',
-                        'entity_id': column.column_id,
-                        'text': column.qualified_name,
-                        'embedding': column_embeddings[column.qualified_name]
-                    })
+                # Prepare column embeddings
+                for column in columns:
+                    if column.qualified_name in column_embeddings:
+                        embeddings_data.append({
+                            'kg_id': kg_id,
+                            'entity_type': 'column',
+                            'entity_id': column.column_id,
+                            'text': column.qualified_name,
+                            'embedding': column_embeddings[column.qualified_name]
+                        })
             
             self.kg_repository.insert_embeddings(embeddings_data)
             
