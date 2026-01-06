@@ -1,9 +1,12 @@
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Type, TypeVar
+from pydantic import BaseModel
 from openai import OpenAI
 from langfuse.openai import openai as langfuse_openai
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar('T', bound=BaseModel)
 
 class OpenAIClient:
     """Wrapper for OpenAI API with Langfuse monitoring."""
@@ -26,20 +29,36 @@ class OpenAIClient:
     ) -> str:
         """ Generate chat completion. """
         try:
-            kwargs = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature
-            }
-            
-            if response_format:
-                kwargs["response_format"] = response_format
-            
-            response = self.client.chat.completions.create(**kwargs)
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature
+            )
             return response.choices[0].message.content
             
         except Exception as e:
             logger.error(f"OpenAI completion failed: {e}")
+            raise
+        
+    def generate_structured_completion(
+        self,
+        messages: List[Dict[str, str]],
+        response_model: Type[T],
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.0,
+    ) -> T:
+        """Generate chat completion with structured output using Pydantic model"""
+        try:
+            response = self.client.beta.chat.completions.parse(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                response_format=response_model
+            )
+            return response.choices[0].message.parsed
+            
+        except Exception as e:
+            logger.error(f"OpenAI structured completion failed: {e}")
             raise
         
     def generate_embeddings(
@@ -61,3 +80,4 @@ class OpenAIClient:
         except Exception as e:
             logger.error(f"OpenAI embeddings failed: {e}")
             raise
+        
