@@ -15,7 +15,7 @@ class SchemaExtractor:
     def __init__(self, connection, openai_client=None):
         self.conn = connection
         self.table_extractor = TableExtractor(connection)
-        self.column_extractor = ColumnExtractor(connection, openai_client)
+        self.column_extractor = ColumnExtractor(connection)
         self.relationship_extractor = RelationshipExtractor(connection)
         
     def extract_schema(self, kg_id: UUID, schema_name: str = "public") -> Dict:

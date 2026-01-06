@@ -1,9 +1,7 @@
 import logging
 from typing import List, Dict, Any
 from uuid import UUID
-import psycopg2
 from psycopg2.extras import RealDictCursor
-import json
 from pydantic import BaseModel
 
 from ..models import Column, Table
@@ -18,9 +16,8 @@ class ColumnExtractor:
     """
         Extracts column metadata from PostgreSQL information_schema.
     """
-    def __init__(self, connection, openai_client=None):
+    def __init__(self, connection):
         self.conn = connection
-        self.openai_client = openai_client
         
     def extract_columns(self, table: Table) -> List[Column]:
         """
@@ -216,50 +213,11 @@ class ColumnExtractor:
         except Exception:
             return {"cardinality": None, "null_percentage": None, "enum_values": None}
         
-    def _is_pii_column(self, column_name: str, data_type: str, sample_values: List[str]) -> bool:
+    def _is_pii_column_heuristic(self, column_name: str, data_type: str) -> bool:
         """
             Detect if column might contain PII based on name.
         """
-        if not self.openai_client:
-            pii_keywords = ['email', 'phone', 'ssn', 'social_security', 'credit_card', 'password', 'address']
-            column_lower = column_name.lower()
-            return any(keyword in column_lower for keyword in pii_keywords)
-
-        # Use OpenAI for intelligent PII detection
-        try:
-            sample_str = ', '.join(sample_values[:3]) if sample_values else 'No samples'
-            
-            prompt = f"""Analyze if this database column contains Personally Identifiable Information (PII).
-
-                    Column name: {column_name}
-                    Data type: {data_type}
-                    Sample values: {sample_str}
-
-                    PII includes: names, email addresses, phone numbers, SSN, addresses, credit card numbers, passwords, birth dates, etc.
-
-                    Respond with ONLY "true" or "false".
-                """
-                
-            
-            response = self.openai_client.responses.parse(
-                input=[
-                    {"role": "system", "content": "You are a data privacy expert. Respond only with true or false."},
-                    {"role": "user", "content": prompt}
-                ],
-                model="gpt-4o-mini",
-                temperature=0.0,
-                text_format=PIIDetectionOutput,
-            )
-            
-            result = response.output[0].content[0].parsed
-            
-            return result.is_pii
-
-        except Exception as e:
-            logger.warning(f"OpenAI PII detection failed for '{column_name}': {e}. Using fallback.")
-            
-            # Fallback to keyword-based detection
-            pii_keywords = ['email', 'phone', 'ssn', 'social_security', 'credit_card', 'password', 'address']
-            column_lower = column_name.lower()
-            return any(keyword in column_lower for keyword in pii_keywords)
+        pii_keywords = ['email', 'phone', 'ssn', 'social_security', 'credit_card', 'password', 'address']
+        column_lower = column_name.lower()
+        return any(keyword in column_lower for keyword in pii_keywords)
         
