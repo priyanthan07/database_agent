@@ -2,12 +2,99 @@ import sys
 import os
 import psycopg2
 import hashlib
+import json 
+from datetime import datetime
+from uuid import UUID
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+from src.kg.models import KnowledgeGraph
 from config.settings import Settings
 from src.kg.manager.kg_manager import KGManager
 from src.kg.generators.openai_client import OpenAIClient
+
+def kg_to_json(kg: KnowledgeGraph, output_path: str = "kg_export.json"):
+    """Export KG to JSON file"""
+    
+    # Helper to convert UUID/datetime to string
+    def serialize(obj):
+        if isinstance(obj, UUID):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError(f"Type {type(obj)} not serializable")
+    
+    # Build JSON structure
+    kg_dict = {
+        "kg_id": str(kg.kg_id),
+        "source_db": {
+            "host": kg.source_db_host,
+            "port": kg.source_db_port,
+            "name": kg.source_db_name,
+            "hash": kg.source_db_hash
+        },
+        "status": kg.status,
+        "created_at": kg.created_at.isoformat(),
+        "last_updated": kg.last_updated.isoformat(),
+        "tables": {},
+        "relationships": []
+    }
+    
+    # Add tables with columns
+    for table_name, table in kg.tables.items():
+        kg_dict["tables"][table_name] = {
+            "table_id": str(table.table_id),
+            "schema_name": table.schema_name,
+            "qualified_name": table.qualified_name,
+            "table_type": table.table_type,
+            "row_count_estimate": table.row_count_estimate,
+            "description": table.description,
+            "business_domain": table.business_domain,
+            "typical_use_cases": table.typical_use_cases,
+            "columns": {}
+        }
+        
+        # Add columns
+        for col_name, col in table.columns.items():
+            kg_dict["tables"][table_name]["columns"][col_name] = {
+                "column_id": str(col.column_id),
+                "qualified_name": col.qualified_name,
+                "data_type": col.data_type,
+                "is_nullable": col.is_nullable,
+                "is_primary_key": col.is_primary_key,
+                "is_unique": col.is_unique,
+                "is_foreign_key": col.is_foreign_key,
+                "column_position": col.column_position,
+                "description": col.description,
+                "business_meaning": col.business_meaning,
+                "sample_values": col.sample_values,
+                "enum_values": col.enum_values,
+                "cardinality": col.cardinality,
+                "null_percentage": col.null_percentage,
+                "is_pii": col.is_pii
+            }
+    
+    # Add relationships
+    for rel in kg.relationships:
+        kg_dict["relationships"].append({
+            "relationship_id": str(rel.relationship_id),
+            "from_table": rel.from_table_name,
+            "from_column": rel.from_column,
+            "to_table": rel.to_table_name,
+            "to_column": rel.to_column,
+            "relationship_type": rel.relationship_type,
+            "constraint_name": rel.constraint_name,
+            "join_condition": rel.join_condition,
+            "is_self_reference": rel.is_self_reference
+        })
+    
+    # Write to file
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(kg_dict, f, indent=2, ensure_ascii=False)
+    
+    print(f"✅ KG exported to: {output_path}")
+    print(f"   Tables: {len(kg_dict['tables'])}")
+    print(f"   Relationships: {len(kg_dict['relationships'])}")
 
 def main():
     # Load settings
@@ -36,6 +123,9 @@ def main():
     if not kg:
         print("KG not found! Run build_kg.py first.")
         return
+    
+    # if kg:
+    #     kg_to_json(kg, "kg_export.json")
     
     print(f"\nLoaded KG: {kg.kg_id}")
     print(f"Status: {kg.status}")

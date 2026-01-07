@@ -1,0 +1,1806 @@
+{
+  "kg_id": "bd7098da-d5f9-46c4-9cba-b25aa52a0372",
+  "source_db": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "ecommerce_db",
+    "hash": "4d6fb9ea2dd10ef3a3fca471f0a0d741f6791ea95c427d6515b05585a2ec1ce5"
+  },
+  "status": "ready",
+  "created_at": "2026-01-06T22:32:11.502782+05:30",
+  "last_updated": "2026-01-06T22:32:11.502782+05:30",
+  "tables": {
+    "addresses": {
+      "table_id": "bbd5460e-4f85-4390-9867-6b5426f42fc3",
+      "schema_name": "public",
+      "qualified_name": "public.addresses",
+      "table_type": "base table",
+      "row_count_estimate": 77,
+      "description": "The addresses table stores information about customer addresses, including types such as shipping and billing, to facilitate order processing and delivery management.",
+      "business_domain": "Customer Management",
+      "typical_use_cases": [
+        "Storing multiple addresses for customers to manage shipping and billing locations.",
+        "Identifying default addresses for customers to streamline checkout processes.",
+        "Retrieving customer address information for order fulfillment and delivery tracking."
+      ],
+      "columns": {
+        "address_id": {
+          "column_id": "110561b0-99a0-4d32-a4ce-cc056c00de11",
+          "qualified_name": "addresses.address_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 1,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "customer_id": {
+          "column_id": "b9a69533-4dfe-466b-b205-6e32fc3578f5",
+          "qualified_name": "addresses.customer_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": true,
+          "column_position": 2,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "address_type": {
+          "column_id": "7be86a18-ba35-4b9a-9987-9f5a0fef5574",
+          "qualified_name": "addresses.address_type",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 3,
+          "description": "This column stores the type of address associated with a customer, indicating whether it is for shipping or billing purposes.",
+          "business_meaning": "The 'address_type' column is crucial for differentiating between addresses used for shipping products to customers and those used for billing purposes. This distinction helps in processing orders accurately and ensuring that invoices and shipments are sent to the correct locations.",
+          "sample_values": [
+            "shipping",
+            "billing"
+          ],
+          "enum_values": [
+            "shipping",
+            "billing"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "street_address": {
+          "column_id": "41f95ffa-28b6-413f-a170-fc401d33c1a9",
+          "qualified_name": "addresses.street_address",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 4,
+          "description": "This column stores the street address information for a location, including the street number and street name.",
+          "business_meaning": "The street_address column is crucial for identifying the specific location of a property or business within a given area. It is used for purposes such as shipping, service delivery, and customer identification, making it essential for logistics, marketing, and customer relationship management.",
+          "sample_values": [
+            "8059 Main St",
+            "2765 Main St",
+            "5753 Main St",
+            "6745 Main St",
+            "7385 Main St"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "city": {
+          "column_id": "6b13415f-c9b3-4fd5-af83-3336ced1d5bc",
+          "qualified_name": "addresses.city",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 5,
+          "description": "This column stores the names of cities associated with addresses.",
+          "business_meaning": "The 'city' column is crucial for identifying the geographical location of an address, which is important for logistics, service delivery, and demographic analysis. It helps businesses understand their market reach and customer distribution.",
+          "sample_values": [
+            "Chicago",
+            "New York",
+            "Philadelphia",
+            "Houston",
+            "Los Angeles"
+          ],
+          "enum_values": [
+            "Chicago",
+            "New York",
+            "Philadelphia",
+            "Houston",
+            "Los Angeles",
+            "Phoenix"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "state": {
+          "column_id": "0f8d5263-6e1d-408e-8e67-f8ede86d7d81",
+          "qualified_name": "addresses.state",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 6,
+          "description": "This column stores the state abbreviation for addresses, representing the U.S. state where a location is situated.",
+          "business_meaning": "The 'state' column is crucial for identifying the geographical location of an address, which is important for logistics, shipping, and regional analysis. It helps in categorizing customers or clients based on their state for targeted marketing, compliance with state regulations, and understanding regional demographics.",
+          "sample_values": [
+            "NY",
+            "TX",
+            "PA",
+            "IL",
+            "CA"
+          ],
+          "enum_values": [
+            "NY",
+            "TX",
+            "PA",
+            "IL",
+            "CA",
+            "AZ"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "postal_code": {
+          "column_id": "e9ede7d2-bd8e-4f00-aa62-7a284ba7cd6d",
+          "qualified_name": "addresses.postal_code",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 7,
+          "description": "This column stores postal codes, which are alphanumeric codes used to identify specific geographic areas for mail delivery.",
+          "business_meaning": "The postal_code column is crucial for identifying the location of addresses within a database. It enables businesses to segment customers by region, optimize shipping logistics, and ensure accurate delivery of goods and services.",
+          "sample_values": [
+            "17318",
+            "21763",
+            "75149",
+            "56739",
+            "85768"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "country": {
+          "column_id": "1832c43d-e9db-4827-8337-a3f046989a9f",
+          "qualified_name": "addresses.country",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 8,
+          "description": "This column stores the name of the country associated with an address.",
+          "business_meaning": "The 'country' column is crucial for identifying the geographical location of an address, which is essential for shipping, billing, and demographic analysis. It helps in understanding the market reach and customer distribution across different countries.",
+          "sample_values": [
+            "USA"
+          ],
+          "enum_values": [
+            "USA"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "is_default": {
+          "column_id": "a4d28426-2a51-4cab-8cca-7ea45e75679c",
+          "qualified_name": "addresses.is_default",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 9,
+          "description": "Indicates whether the address is the default address for a user or entity.",
+          "business_meaning": "This column is used to identify the primary address that should be used for communications, billing, or shipping purposes. If 'True', it signifies that this address is the preferred one, while 'False' indicates that it is not the default address.",
+          "sample_values": [
+            "False",
+            "True"
+          ],
+          "enum_values": [
+            "False",
+            "True"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "created_at": {
+          "column_id": "1811f998-fe78-4bd7-b434-52a68a91b811",
+          "qualified_name": "addresses.created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 10,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        }
+      }
+    },
+    "categories": {
+      "table_id": "350d287f-fcd2-4cc2-84eb-cb6e306835b1",
+      "schema_name": "public",
+      "qualified_name": "public.categories",
+      "table_type": "base table",
+      "row_count_estimate": -1,
+      "description": "The 'categories' table is designed to organize and manage different product categories within a system, allowing for hierarchical relationships between categories through parent-child associations.",
+      "business_domain": "Inventory",
+      "typical_use_cases": [
+        "Organizing products into categories for easier navigation in an e-commerce platform.",
+        "Facilitating inventory management by grouping similar items under a common category.",
+        "Generating reports on sales performance by category to analyze trends and make informed business decisions."
+      ],
+      "columns": {
+        "category_id": {
+          "column_id": "ae1d25d4-1372-4f72-b343-42d8351c145c",
+          "qualified_name": "categories.category_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 1,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "category_name": {
+          "column_id": "29dfc288-cf77-4fb6-b444-f4172b0e116d",
+          "qualified_name": "categories.category_name",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": true,
+          "is_foreign_key": false,
+          "column_position": 2,
+          "description": "This column stores the names of different product categories available in the database.",
+          "business_meaning": "The 'category_name' column is crucial for organizing products into distinct groups, allowing customers to easily navigate and find items based on their interests, such as Accessories, Books, or Clothing. This categorization supports inventory management and marketing strategies.",
+          "sample_values": [
+            "Accessories",
+            "Books",
+            "Clothing",
+            "Electronics",
+            "Furniture"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "description": {
+          "column_id": "6994f048-4fed-4821-ac85-482e1510b433",
+          "qualified_name": "categories.description",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 3,
+          "description": "This column stores textual descriptions of various product categories.",
+          "business_meaning": "The 'description' column provides essential information about the type of products or services offered within each category, helping customers understand the nature of the items available and aiding in product organization and searchability.",
+          "sample_values": [
+            "Apparel and fashion",
+            "Home furniture",
+            "Women's clothing",
+            "Home and garden items",
+            "Portable computers"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "parent_category_id": {
+          "column_id": "27580075-2e31-4581-bc34-e541872e35d0",
+          "qualified_name": "categories.parent_category_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": true,
+          "column_position": 4,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "5",
+            "1",
+            "8"
+          ],
+          "enum_values": [
+            "5",
+            "1",
+            "8"
+          ],
+          "cardinality": "low",
+          "null_percentage": 41.67,
+          "is_pii": false
+        },
+        "created_at": {
+          "column_id": "22e013cb-20e5-4bcb-991c-f9f4d3bd4558",
+          "qualified_name": "categories.created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 5,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        }
+      }
+    },
+    "customers": {
+      "table_id": "4d7861a4-459b-4816-82f1-318a81c211bb",
+      "schema_name": "public",
+      "qualified_name": "public.customers",
+      "table_type": "base table",
+      "row_count_estimate": -1,
+      "description": "The 'customers' table stores information about customers, including their contact details, account status, and loyalty points, facilitating customer management and engagement.",
+      "business_domain": "Customer Management",
+      "typical_use_cases": [
+        "Tracking customer information and contact details for communication purposes.",
+        "Managing customer loyalty programs by monitoring loyalty points.",
+        "Analyzing customer demographics and activity to improve marketing strategies."
+      ],
+      "columns": {
+        "customer_id": {
+          "column_id": "37484643-901f-4b6f-a51e-e63436a8aa4f",
+          "qualified_name": "customers.customer_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 1,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "email": {
+          "column_id": "bd0dc214-3a6d-41ad-bf8c-558cb71f09de",
+          "qualified_name": "customers.email",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": true,
+          "is_foreign_key": false,
+          "column_position": 2,
+          "description": "This column stores the email addresses of customers.",
+          "business_meaning": "The email column is crucial for customer communication, marketing campaigns, and account management. It serves as a primary identifier for customer accounts and is used for sending order confirmations, promotional materials, and customer support interactions.",
+          "sample_values": [
+            "david.davis13@email.com",
+            "david.garcia30@email.com",
+            "david.martinez37@email.com",
+            "david.rodriguez38@email.com",
+            "emily.anderson4@email.com"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "first_name": {
+          "column_id": "f433dfa0-874c-4b65-9459-a4871c4d81ac",
+          "qualified_name": "customers.first_name",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 3,
+          "description": "This column stores the first names of customers.",
+          "business_meaning": "The first_name column is essential for personalizing customer interactions and communications. It helps in identifying and addressing customers in a friendly manner, which can enhance customer experience and engagement.",
+          "sample_values": [
+            "Thomas",
+            "Jennifer",
+            "Jane",
+            "Lisa",
+            "Michael"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "last_name": {
+          "column_id": "a7a55f4d-1f63-4c29-8752-63448d6e3476",
+          "qualified_name": "customers.last_name",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 4,
+          "description": "This column stores the last names of customers.",
+          "business_meaning": "The last name is used to identify and differentiate customers within the database, facilitating customer management, communication, and personalized services.",
+          "sample_values": [
+            "Taylor",
+            "Anderson",
+            "Johnson",
+            "Jones",
+            "Rodriguez"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "phone": {
+          "column_id": "9455eb09-45ff-4646-be1a-2bde2b52dff4",
+          "qualified_name": "customers.phone",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 5,
+          "description": "This column stores the phone numbers of customers in a variable character format, allowing for different phone number formats and international codes.",
+          "business_meaning": "The phone column is crucial for customer communication, enabling the business to contact customers for support, marketing, and order confirmations. It also plays a role in customer relationship management and service personalization.",
+          "sample_values": [
+            "+1-555-9932",
+            "+1-555-9254",
+            "+1-555-2983",
+            "+1-555-7921",
+            "+1-555-8876"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "date_joined": {
+          "column_id": "32ed6b0a-dbda-4d3b-9f84-1a5ef5520611",
+          "qualified_name": "customers.date_joined",
+          "data_type": "date",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 6,
+          "description": "This column stores the date when a customer joined the service or made their first purchase.",
+          "business_meaning": "The 'date_joined' column is crucial for understanding customer acquisition trends, calculating customer lifetime value, and segmenting customers based on their tenure with the company. It helps in analyzing customer behavior over time and assessing the effectiveness of marketing strategies.",
+          "sample_values": [
+            "2026-01-03",
+            "2024-06-19",
+            "2025-12-18",
+            "2024-05-09",
+            "2025-10-13"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "is_active": {
+          "column_id": "e97b4da9-b03d-4cec-aaf7-b385f6ef134f",
+          "qualified_name": "customers.is_active",
+          "data_type": "boolean",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 7,
+          "description": "This column stores a boolean value indicating whether a customer account is currently active or inactive.",
+          "business_meaning": "The 'is_active' column is crucial for determining the status of customer accounts. An active account (True) signifies that the customer is currently engaged with the business, while an inactive account (False) may indicate that the customer has not made recent purchases or has opted to close their account. This information is vital for customer relationship management, marketing strategies, and operational decisions.",
+          "sample_values": [
+            "True"
+          ],
+          "enum_values": [
+            "True"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "loyalty_points": {
+          "column_id": "0c76abf3-c5a8-458a-953f-3b05aa7d21a5",
+          "qualified_name": "customers.loyalty_points",
+          "data_type": "integer",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 8,
+          "description": "This column stores the total number of loyalty points accumulated by each customer.",
+          "business_meaning": "Loyalty points are used to reward customers for their purchases and engagement with the business. They can be redeemed for discounts, products, or services, incentivizing repeat business and customer retention.",
+          "sample_values": [
+            "3205",
+            "1713",
+            "1543",
+            "34",
+            "4105"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "created_at": {
+          "column_id": "f28d29f3-b1c9-4814-bfc7-d30e840853e6",
+          "qualified_name": "customers.created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 9,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        }
+      }
+    },
+    "order_items": {
+      "table_id": "872f3a09-6389-42d8-8539-2419dc9ebd33",
+      "schema_name": "public",
+      "qualified_name": "public.order_items",
+      "table_type": "base table",
+      "row_count_estimate": 393,
+      "description": "The order_items table stores detailed information about individual items within customer orders, including product details, pricing, and quantities. It serves as a link between orders and products, facilitating order management and sales analysis.",
+      "business_domain": "Sales",
+      "typical_use_cases": [
+        "Calculating total sales revenue from orders by aggregating subtotals of order items.",
+        "Analyzing product performance by examining quantities sold and discounts applied across different orders.",
+        "Generating detailed invoices for customers that itemize each product purchased along with its price and any applicable discounts."
+      ],
+      "columns": {
+        "order_item_id": {
+          "column_id": "88f1a62a-985e-44b0-a6c7-9679aa6f252f",
+          "qualified_name": "order_items.order_item_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 1,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "order_id": {
+          "column_id": "70efe053-03e7-4de3-b9d1-752c75c8d404",
+          "qualified_name": "order_items.order_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": true,
+          "column_position": 2,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "product_id": {
+          "column_id": "fbe15e2c-2e83-4b8e-b370-af93a48dab67",
+          "qualified_name": "order_items.product_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": true,
+          "column_position": 3,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "quantity": {
+          "column_id": "d5eeefbd-9936-4370-bb17-189575d6ab52",
+          "qualified_name": "order_items.quantity",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 4,
+          "description": "This column stores the quantity of items ordered in a specific order item entry.",
+          "business_meaning": "The 'quantity' column indicates how many units of a particular product are included in an order. This is crucial for inventory management, order fulfillment, and sales reporting, as it helps the business understand customer demand and manage stock levels effectively.",
+          "sample_values": [
+            "1",
+            "3",
+            "2"
+          ],
+          "enum_values": [
+            "1",
+            "3",
+            "2"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "unit_price": {
+          "column_id": "ed5cd0bb-d1bd-4a17-ae43-ca5e04aa1d6c",
+          "qualified_name": "order_items.unit_price",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 5,
+          "description": "This column stores the price per unit of each item in an order.",
+          "business_meaning": "The unit_price column is crucial for calculating the total cost of an order, as it directly influences revenue and profitability. It allows the business to track pricing strategies, manage inventory costs, and analyze sales performance based on item pricing.",
+          "sample_values": [
+            "59.99",
+            "39.99",
+            "129.99",
+            "24.99",
+            "499.99"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "discount_percent": {
+          "column_id": "4ffb5fee-4f70-41cc-b58f-4cf2557226db",
+          "qualified_name": "order_items.discount_percent",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 6,
+          "description": "This column stores the percentage discount applied to each order item.",
+          "business_meaning": "The discount_percent column indicates the percentage reduction in price for an order item, which is crucial for calculating the final sale price and understanding promotional strategies. It helps the business assess the effectiveness of discounts on sales and revenue.",
+          "sample_values": [
+            "10.00",
+            "0.00",
+            "5.00",
+            "15.00"
+          ],
+          "enum_values": [
+            "10.00",
+            "0.00",
+            "5.00",
+            "15.00"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "subtotal": {
+          "column_id": "cf200842-d29e-4e79-b107-28fcf2f5f5e8",
+          "qualified_name": "order_items.subtotal",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 7,
+          "description": "This column stores the subtotal amount for each order item, representing the total cost before any taxes, discounts, or additional fees are applied.",
+          "business_meaning": "The subtotal is crucial for calculating the total cost of an order, allowing businesses to assess revenue from individual items and manage pricing strategies effectively. It helps in financial reporting and inventory management.",
+          "sample_values": [
+            "339.98",
+            "76.47",
+            "5414.97",
+            "5099.97",
+            "699.99"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "created_at": {
+          "column_id": "84ba01e8-0523-427d-a4c7-c77e91c886ba",
+          "qualified_name": "order_items.created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 8,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        }
+      }
+    },
+    "orders": {
+      "table_id": "06e9b247-c151-42b6-bb57-638be87db973",
+      "schema_name": "public",
+      "qualified_name": "public.orders",
+      "table_type": "base table",
+      "row_count_estimate": 128,
+      "description": "The 'orders' table stores information about customer orders, including details such as order status, payment method, and financial amounts related to each order. It serves as a central repository for tracking the lifecycle of orders from placement to delivery.",
+      "business_domain": "Sales",
+      "typical_use_cases": [
+        "Tracking order status and history for customer service inquiries",
+        "Generating sales reports and analytics based on order data",
+        "Managing shipping and delivery logistics for customer orders"
+      ],
+      "columns": {
+        "order_id": {
+          "column_id": "e871c98c-799e-4657-84c7-a865ade81036",
+          "qualified_name": "orders.order_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 1,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "customer_id": {
+          "column_id": "876930d9-b69b-49d0-8f34-5d0356e06275",
+          "qualified_name": "orders.customer_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": true,
+          "column_position": 2,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "shipping_address_id": {
+          "column_id": "f7f3ff9f-e3f1-49de-b682-826281c29290",
+          "qualified_name": "orders.shipping_address_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": true,
+          "column_position": 3,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "71",
+            "4",
+            "34",
+            "51",
+            "41"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": true
+        },
+        "order_date": {
+          "column_id": "3e37006f-6755-4425-88c5-f77dad43622c",
+          "qualified_name": "orders.order_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 4,
+          "description": "This column stores the date and time when an order was placed, represented as a timestamp without time zone.",
+          "business_meaning": "The 'order_date' column is crucial for tracking when each order was made, which helps in managing order fulfillment, analyzing sales trends over time, and understanding customer purchasing behavior.",
+          "sample_values": [
+            "2025-01-06 10:03:29.208310",
+            "2025-01-06 10:03:29.270845",
+            "2025-01-08 10:03:29.248358",
+            "2025-01-11 10:03:29.208310",
+            "2025-01-11 10:03:29.223503"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "status": {
+          "column_id": "def7f88f-150b-4e97-83ee-a05a7206c55a",
+          "qualified_name": "orders.status",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 5,
+          "description": "This column stores the current status of an order in the orders table.",
+          "business_meaning": "The status column indicates the progress of an order within the fulfillment process, helping to track whether an order has been shipped, is still pending, has been cancelled, has been delivered, or is currently being processed.",
+          "sample_values": [
+            "shipped",
+            "pending",
+            "cancelled",
+            "delivered",
+            "processing"
+          ],
+          "enum_values": [
+            "shipped",
+            "pending",
+            "cancelled",
+            "delivered",
+            "processing"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "total_amount": {
+          "column_id": "d303baaa-d3df-44db-b6b6-7c134e7cb330",
+          "qualified_name": "orders.total_amount",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 6,
+          "description": "This column stores the total monetary amount for each order placed in the system.",
+          "business_meaning": "The total_amount column represents the final cost of an order, including all applicable charges such as product prices, taxes, and shipping fees. It is crucial for financial reporting, revenue tracking, and customer billing.",
+          "sample_values": [
+            "917.95",
+            "691.17",
+            "1942.29",
+            "4606.09",
+            "346.93"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "shipping_cost": {
+          "column_id": "0efed693-4cd4-4161-844e-e0ea09dc2d98",
+          "qualified_name": "orders.shipping_cost",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 7,
+          "description": "This column stores the cost associated with shipping an order.",
+          "business_meaning": "The shipping_cost column is crucial for calculating the total cost of an order for customers. It reflects the additional charge for delivering products to the customer's location, which can influence purchasing decisions and overall customer satisfaction.",
+          "sample_values": [
+            "9.99",
+            "0.00"
+          ],
+          "enum_values": [
+            "9.99",
+            "0.00"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "tax_amount": {
+          "column_id": "dbf04819-de5f-4c3b-8229-08dcd7eb41c0",
+          "qualified_name": "orders.tax_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 8,
+          "description": "This column stores the amount of tax applied to an order, represented as a numeric value.",
+          "business_meaning": "The tax_amount column is crucial for calculating the total cost of an order, as it reflects the tax liability that the customer must pay in addition to the base price of the products or services purchased. This information is essential for financial reporting, compliance with tax regulations, and ensuring accurate billing.",
+          "sample_values": [
+            "14.00",
+            "528.31",
+            "13.40",
+            "154.72",
+            "188.69"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "discount_amount": {
+          "column_id": "f6a6e51c-e447-458a-bec3-0ee8b1272874",
+          "qualified_name": "orders.discount_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 9,
+          "description": "This column stores the amount of discount applied to an order, represented as a numeric value.",
+          "business_meaning": "The discount_amount column is crucial for calculating the final price of an order after applying any discounts. It helps in understanding the promotional strategies and customer incentives, as well as in analyzing the impact of discounts on sales revenue.",
+          "sample_values": [
+            "0.00"
+          ],
+          "enum_values": [
+            "0.00"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "payment_method": {
+          "column_id": "e065d8ab-de7b-4ee7-9885-2421389293aa",
+          "qualified_name": "orders.payment_method",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 10,
+          "description": "This column stores the method of payment used for each order placed in the system.",
+          "business_meaning": "The 'payment_method' column is crucial for understanding customer preferences regarding payment options. It helps the business analyze which payment methods are most popular, manage payment processing, and ensure compatibility with various payment gateways. Additionally, it can inform marketing strategies and customer service approaches.",
+          "sample_values": [
+            "debit_card",
+            "credit_card",
+            "apple_pay",
+            "paypal"
+          ],
+          "enum_values": [
+            "debit_card",
+            "credit_card",
+            "apple_pay",
+            "paypal"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "shipped_date": {
+          "column_id": "957588a3-e9e7-468d-86d9-44c42ff01500",
+          "qualified_name": "orders.shipped_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 11,
+          "description": "This column stores the date and time when an order was shipped.",
+          "business_meaning": "The 'shipped_date' column is crucial for tracking the fulfillment process of customer orders. It helps in determining the efficiency of the shipping process, managing customer expectations regarding delivery times, and analyzing shipping performance over time.",
+          "sample_values": [
+            "2025-08-14 10:03:29.276860",
+            "2025-03-26 10:03:29.229711",
+            "2025-09-01 10:03:29.208310",
+            "2025-01-12 10:03:29.268861",
+            "2025-01-13 10:03:29.223503"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 60.16,
+          "is_pii": false
+        },
+        "delivered_date": {
+          "column_id": "5279280e-8449-415a-ad60-cb718ef69cc8",
+          "qualified_name": "orders.delivered_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 12,
+          "description": "This column stores the timestamp indicating when an order was delivered to the customer.",
+          "business_meaning": "The delivered_date column is crucial for tracking the fulfillment of customer orders. It helps in measuring delivery performance, managing customer expectations, and analyzing order processing times. This information can be used for reporting, improving logistics, and enhancing customer satisfaction.",
+          "sample_values": [
+            "2025-01-20 10:03:29.223503",
+            "2025-07-04 10:03:29.247330",
+            "2025-03-14 10:03:29.237097",
+            "2025-09-26 10:03:29.196538",
+            "2025-07-21 10:03:29.241438"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 85.94,
+          "is_pii": false
+        },
+        "notes": {
+          "column_id": "cf8f7c27-3c85-40c4-89a0-c0a8cc1e0fbe",
+          "qualified_name": "orders.notes",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 13,
+          "description": "This column stores additional comments or remarks related to an order.",
+          "business_meaning": "The 'notes' column allows users to add personalized information or special instructions regarding an order, which can be important for customer service, order fulfillment, or internal communication.",
+          "sample_values": null,
+          "enum_values": null,
+          "cardinality": "low",
+          "null_percentage": 100.0,
+          "is_pii": false
+        },
+        "created_at": {
+          "column_id": "cae1ba66-d26b-46b0-9f7c-5d655e5ccd6c",
+          "qualified_name": "orders.created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 14,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        }
+      }
+    },
+    "products": {
+      "table_id": "343ba0bb-1cc7-4ccb-a592-ebe5b1731ca0",
+      "schema_name": "public",
+      "qualified_name": "public.products",
+      "table_type": "base table",
+      "row_count_estimate": -1,
+      "description": "The 'products' table stores detailed information about various products available for sale, including their pricing, stock levels, and categorization. It serves as a central repository for product data used in inventory management and sales processes.",
+      "business_domain": "Inventory",
+      "typical_use_cases": [
+        "Managing product listings in an e-commerce platform",
+        "Tracking stock levels and inventory for restocking purposes",
+        "Analyzing product pricing and cost for profitability assessments"
+      ],
+      "columns": {
+        "product_id": {
+          "column_id": "d113e92c-eca0-4946-aff3-d88507d59c85",
+          "qualified_name": "products.product_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 1,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "product_name": {
+          "column_id": "56eeb3ca-6de3-42af-bda7-f9459bd3b4b6",
+          "qualified_name": "products.product_name",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 2,
+          "description": "This column stores the names of products available in the inventory.",
+          "business_meaning": "The product_name column is crucial for identifying and differentiating products in the catalog. It allows customers to search for and select specific items, thereby playing a key role in sales and inventory management.",
+          "sample_values": [
+            "MacBook Pro 16\"",
+            "Laptop Stand",
+            "Wireless Mouse",
+            "Blender",
+            "Dell XPS 15"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "category_id": {
+          "column_id": "05d277c7-6e3c-49bd-b139-cd6cf0a88a65",
+          "qualified_name": "products.category_id",
+          "data_type": "integer",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": true,
+          "column_position": 3,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2",
+            "3",
+            "4",
+            "6",
+            "7"
+          ],
+          "enum_values": [
+            "2",
+            "3",
+            "4",
+            "6",
+            "7",
+            "9",
+            "10",
+            "11",
+            "12"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "description": {
+          "column_id": "a17dd143-27bf-4363-9c4b-fdd553110d7e",
+          "qualified_name": "products.description",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 4,
+          "description": "This column stores textual descriptions of various products available in the inventory.",
+          "business_meaning": "The 'description' column provides essential information about each product, helping customers understand the features, specifications, and uses of the items. It plays a crucial role in product listings, marketing, and searchability within the e-commerce platform.",
+          "sample_values": [
+            "Ergonomic office chair",
+            "7-in-1 USB-C adapter",
+            "Denim jeans",
+            "Latest iPhone",
+            "Adjustable standing desk"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "price": {
+          "column_id": "be803a71-94a0-4121-bd2b-4d8facfb878d",
+          "qualified_name": "products.price",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 5,
+          "description": "This column stores the price of each product in the database, represented as a numeric value.",
+          "business_meaning": "The price column is crucial for determining the cost of products offered for sale. It directly impacts revenue generation, pricing strategies, and customer purchasing decisions. Accurate pricing is essential for competitive positioning in the market.",
+          "sample_values": [
+            "24.99",
+            "129.99",
+            "499.99",
+            "59.99",
+            "29.99"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "cost": {
+          "column_id": "b3e1859c-a17a-4ec9-b6ca-82d8e8998d75",
+          "qualified_name": "products.cost",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 6,
+          "description": "This column stores the cost of each product in the database, represented as a numeric value.",
+          "business_meaning": "The 'cost' column is crucial for determining the pricing strategy of products, calculating profit margins, and managing inventory costs. It helps the business understand the financial implications of product sales and is essential for budgeting and financial forecasting.",
+          "sample_values": [
+            "700.00",
+            "500.00",
+            "25.00",
+            "100.00",
+            "30.00"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "stock_quantity": {
+          "column_id": "7c65d766-bc37-4ad7-b55f-ab3d638403e1",
+          "qualified_name": "products.stock_quantity",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 7,
+          "description": "This column stores the quantity of each product available in stock.",
+          "business_meaning": "The stock_quantity column is crucial for inventory management, as it indicates how many units of a product are currently available for sale. This information helps businesses manage supply levels, fulfill customer orders, and make informed purchasing decisions to avoid stockouts or overstock situations.",
+          "sample_values": [
+            "80",
+            "35",
+            "45",
+            "50",
+            "60"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "sku": {
+          "column_id": "1fe2918c-ac06-4549-9682-668ca218f444",
+          "qualified_name": "products.sku",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": true,
+          "is_foreign_key": false,
+          "column_position": 8,
+          "description": "This column stores the Stock Keeping Unit (SKU) identifiers for products, which are unique alphanumeric codes used to track inventory.",
+          "business_meaning": "The SKU is crucial for inventory management and sales tracking, allowing businesses to identify and manage products efficiently. It helps in categorizing products, facilitating order processing, and maintaining stock levels.",
+          "sample_values": [
+            "ACC-MOUSE-W",
+            "ACC-STAND",
+            "ACC-USBC-HUB",
+            "BOOK-DS",
+            "BOOK-PYTHON"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "is_active": {
+          "column_id": "43d900c9-e2ac-46df-8a31-688ba3e43e25",
+          "qualified_name": "products.is_active",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 9,
+          "description": "Indicates whether a product is currently active and available for sale.",
+          "business_meaning": "This column is crucial for managing product availability in the inventory. An 'is_active' value of True means the product is available for customers to purchase, while a False value would indicate that the product is inactive, possibly due to being out of stock, discontinued, or temporarily unavailable.",
+          "sample_values": [
+            "True"
+          ],
+          "enum_values": [
+            "True"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "weight_kg": {
+          "column_id": "eba5ecca-bbd9-46ae-8ed3-3547246d12c1",
+          "qualified_name": "products.weight_kg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 10,
+          "description": "This column stores the weight of products in kilograms.",
+          "business_meaning": "The weight of a product is crucial for logistics, shipping costs, and inventory management. It helps in determining shipping fees, compliance with weight regulations, and can influence customer purchasing decisions based on shipping options.",
+          "sample_values": null,
+          "enum_values": null,
+          "cardinality": "low",
+          "null_percentage": 100.0,
+          "is_pii": false
+        },
+        "dimensions": {
+          "column_id": "a3574852-6bbd-4009-b1f5-2b42c5849890",
+          "qualified_name": "products.dimensions",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 11,
+          "description": "This column stores the dimensions of the products, typically represented in a string format that may include measurements such as length, width, and height.",
+          "business_meaning": "The dimensions of a product are crucial for inventory management, shipping calculations, and ensuring that products fit within specified spaces. This information helps in determining storage requirements and affects shipping costs and logistics.",
+          "sample_values": null,
+          "enum_values": null,
+          "cardinality": "low",
+          "null_percentage": 100.0,
+          "is_pii": false
+        },
+        "created_at": {
+          "column_id": "4f4c1897-ceb0-456f-aa61-2194958b5c69",
+          "qualified_name": "products.created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 12,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "updated_at": {
+          "column_id": "ccd02b48-debb-4ac0-973c-4725994df2ae",
+          "qualified_name": "products.updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 13,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        }
+      }
+    },
+    "reviews": {
+      "table_id": "fe235f42-a685-4717-8c5c-131dbd50e638",
+      "schema_name": "public",
+      "qualified_name": "public.reviews",
+      "table_type": "base table",
+      "row_count_estimate": 98,
+      "description": "The 'reviews' table stores customer feedback on products, including ratings, comments, and verification status, to help other customers make informed purchasing decisions.",
+      "business_domain": "Customer Management",
+      "typical_use_cases": [
+        "Analyzing customer satisfaction through ratings and comments",
+        "Identifying trends in product performance based on customer feedback",
+        "Filtering and displaying verified purchase reviews to enhance trust in product listings"
+      ],
+      "columns": {
+        "review_id": {
+          "column_id": "a615b5a7-870d-4222-981d-fba99e1605d5",
+          "qualified_name": "reviews.review_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 1,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "enum_values": null,
+          "cardinality": "high",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "product_id": {
+          "column_id": "e0a70ceb-3ac8-4627-aee8-3fc2350c1964",
+          "qualified_name": "reviews.product_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": true,
+          "is_foreign_key": true,
+          "column_position": 2,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "11",
+            "8",
+            "19",
+            "4",
+            "21"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "customer_id": {
+          "column_id": "8d580840-871c-41be-9eb5-2929732a40ec",
+          "qualified_name": "reviews.customer_id",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": true,
+          "is_foreign_key": true,
+          "column_position": 3,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "1",
+            "2",
+            "5",
+            "6",
+            "7"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "rating": {
+          "column_id": "220779f1-9737-4734-bd96-3faa1315f3e1",
+          "qualified_name": "reviews.rating",
+          "data_type": "integer",
+          "is_nullable": false,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 4,
+          "description": "This column stores the rating given by users for a particular review, represented as an integer value.",
+          "business_meaning": "The rating reflects the user's satisfaction level with a product or service, where lower values indicate dissatisfaction and higher values indicate satisfaction. This information is crucial for assessing overall customer feedback and improving offerings.",
+          "sample_values": [
+            "1",
+            "3",
+            "5",
+            "2",
+            "4"
+          ],
+          "enum_values": [
+            "1",
+            "3",
+            "5",
+            "2",
+            "4"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "title": {
+          "column_id": "71db8e35-fe3d-47ca-95f9-425a4b398df9",
+          "qualified_name": "reviews.title",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 5,
+          "description": "This column stores the title or summary of a review provided by a user.",
+          "business_meaning": "The 'title' column serves as a concise representation of the user's overall sentiment or opinion about a product or service. It helps in quickly identifying the nature of the review and can influence potential customers' decisions.",
+          "sample_values": [
+            "Disappointed",
+            "Not bad",
+            "Fantastic!",
+            "Worth the price",
+            "Highly recommend"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "comment": {
+          "column_id": "ee8a160b-3be1-40a3-89d1-4a9cf8f09d9d",
+          "qualified_name": "reviews.comment",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 6,
+          "description": "This column stores customer feedback in the form of textual comments regarding their experiences with a product or service.",
+          "business_meaning": "The 'comment' column is crucial for understanding customer satisfaction and sentiment. It provides qualitative insights into customer opinions, helping the business identify strengths and weaknesses in their offerings, as well as areas for improvement.",
+          "sample_values": [
+            "Works as advertised. No complaints.",
+            "Really happy with this purchase. Exceeded my expectations!",
+            "Not quite what I was looking for, but it's okay.",
+            "Perfect for my needs. Very satisfied.",
+            "Excellent product! Highly recommended to everyone."
+          ],
+          "enum_values": [
+            "Works as advertised. No complaints.",
+            "Really happy with this purchase. Exceeded my expectations!",
+            "Not quite what I was looking for, but it's okay.",
+            "Perfect for my needs. Very satisfied.",
+            "Excellent product! Highly recommended to everyone.",
+            "Quality could be better for this price point.",
+            "Had some issues but customer service was helpful.",
+            "Good quality for the price. Would buy again."
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "is_verified_purchase": {
+          "column_id": "2aef11f4-43b0-4631-871e-13b93006bed6",
+          "qualified_name": "reviews.is_verified_purchase",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 7,
+          "description": "Indicates whether a purchase was verified as legitimate or not.",
+          "business_meaning": "This column helps to identify if a review is from a customer who has actually purchased the product, which can enhance the credibility and trustworthiness of the review.",
+          "sample_values": [
+            "False",
+            "True"
+          ],
+          "enum_values": [
+            "False",
+            "True"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "helpful_count": {
+          "column_id": "61329792-0d7b-4358-87d3-91012dc37a72",
+          "qualified_name": "reviews.helpful_count",
+          "data_type": "integer",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 8,
+          "description": "This column stores the number of users who found a review helpful.",
+          "business_meaning": "The helpful_count indicates the level of usefulness of a review as perceived by other users. A higher count suggests that the review is considered valuable and informative, which can influence potential customers' purchasing decisions.",
+          "sample_values": [
+            "42",
+            "4",
+            "34",
+            "41",
+            "0"
+          ],
+          "enum_values": null,
+          "cardinality": "medium",
+          "null_percentage": 0.0,
+          "is_pii": false
+        },
+        "created_at": {
+          "column_id": "1262a6ed-57b0-4f1a-aa07-5d3d226339db",
+          "qualified_name": "reviews.created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "is_unique": false,
+          "is_foreign_key": false,
+          "column_position": 9,
+          "description": null,
+          "business_meaning": null,
+          "sample_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "enum_values": [
+            "2026-01-04 10:03:29.153745"
+          ],
+          "cardinality": "low",
+          "null_percentage": 0.0,
+          "is_pii": false
+        }
+      }
+    }
+  },
+  "relationships": [
+    {
+      "relationship_id": "2471d84a-d7f1-479f-a887-245c6a2130f4",
+      "from_table": "addresses",
+      "from_column": "customer_id",
+      "to_table": "customers",
+      "to_column": "customer_id",
+      "relationship_type": "many-to-one",
+      "constraint_name": "addresses_customer_id_fkey",
+      "join_condition": "addresses.customer_id = customers.customer_id",
+      "is_self_reference": false
+    },
+    {
+      "relationship_id": "074f462a-5731-4008-844d-5d3e6cd01192",
+      "from_table": "categories",
+      "from_column": "parent_category_id",
+      "to_table": "categories",
+      "to_column": "category_id",
+      "relationship_type": "many-to-one",
+      "constraint_name": "categories_parent_category_id_fkey",
+      "join_condition": "categories.parent_category_id = categories.category_id",
+      "is_self_reference": true
+    },
+    {
+      "relationship_id": "4e65ad71-370f-4415-82dd-e48d4a390846",
+      "from_table": "order_items",
+      "from_column": "order_id",
+      "to_table": "orders",
+      "to_column": "order_id",
+      "relationship_type": "many-to-one",
+      "constraint_name": "order_items_order_id_fkey",
+      "join_condition": "order_items.order_id = orders.order_id",
+      "is_self_reference": false
+    },
+    {
+      "relationship_id": "31129f23-9ef4-4a1a-bad6-ae0ec84c4ebc",
+      "from_table": "order_items",
+      "from_column": "product_id",
+      "to_table": "products",
+      "to_column": "product_id",
+      "relationship_type": "many-to-one",
+      "constraint_name": "order_items_product_id_fkey",
+      "join_condition": "order_items.product_id = products.product_id",
+      "is_self_reference": false
+    },
+    {
+      "relationship_id": "f562ee4a-4d24-46c6-8d25-9646c22a67be",
+      "from_table": "orders",
+      "from_column": "customer_id",
+      "to_table": "customers",
+      "to_column": "customer_id",
+      "relationship_type": "many-to-one",
+      "constraint_name": "orders_customer_id_fkey",
+      "join_condition": "orders.customer_id = customers.customer_id",
+      "is_self_reference": false
+    },
+    {
+      "relationship_id": "8ce4add1-06f2-4148-a91d-98a15fa5de3d",
+      "from_table": "orders",
+      "from_column": "shipping_address_id",
+      "to_table": "addresses",
+      "to_column": "address_id",
+      "relationship_type": "many-to-one",
+      "constraint_name": "orders_shipping_address_id_fkey",
+      "join_condition": "orders.shipping_address_id = addresses.address_id",
+      "is_self_reference": false
+    },
+    {
+      "relationship_id": "5f7fec5a-58f2-4f99-ba5f-9c899bae4a8c",
+      "from_table": "products",
+      "from_column": "category_id",
+      "to_table": "categories",
+      "to_column": "category_id",
+      "relationship_type": "many-to-one",
+      "constraint_name": "products_category_id_fkey",
+      "join_condition": "products.category_id = categories.category_id",
+      "is_self_reference": false
+    },
+    {
+      "relationship_id": "c229b1c3-329d-46f1-98cb-064011067361",
+      "from_table": "reviews",
+      "from_column": "customer_id",
+      "to_table": "customers",
+      "to_column": "customer_id",
+      "relationship_type": "one-to-one",
+      "constraint_name": "reviews_customer_id_fkey",
+      "join_condition": "reviews.customer_id = customers.customer_id",
+      "is_self_reference": false
+    },
+    {
+      "relationship_id": "d6c58603-304c-4412-b5c2-488152cd8556",
+      "from_table": "reviews",
+      "from_column": "product_id",
+      "to_table": "products",
+      "to_column": "product_id",
+      "relationship_type": "one-to-one",
+      "constraint_name": "reviews_product_id_fkey",
+      "join_condition": "reviews.product_id = products.product_id",
+      "is_self_reference": false
+    }
+  ]
+}

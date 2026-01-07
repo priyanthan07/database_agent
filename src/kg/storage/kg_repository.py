@@ -408,9 +408,9 @@ class KGRepository:
     def _load_relationships(self, kg_id: UUID) -> List[Dict]:
         """Load all relationships for a KG"""
         query = """
-            SELECT relationship_id, kg_id, from_table_id, to_table_id,
-                   from_column, to_column, relationship_type, constraint_name,
-                   join_condition, business_meaning, is_self_reference,
+            SELECT r.relationship_id, r.kg_id, r.from_table_id, r.to_table_id,
+                   r.from_column, r.to_column, r.relationship_type, r.constraint_name,
+                   r.join_condition, r.business_meaning, r.is_self_reference,
                    t1.table_name as from_table_name,
                    t2.table_name as to_table_name
             FROM kg_relationships r
