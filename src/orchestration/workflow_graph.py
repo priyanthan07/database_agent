@@ -15,7 +15,6 @@ class AgentWorkflow:
     """
         LangGraph workflow orchestrating the 3-agent system.
     """
-    
     def __init__(
         self,
         kg_manager,
@@ -105,7 +104,10 @@ class AgentWorkflow:
         """
             Determine next step after Agent 3.
         """
-        route = state.route_to_agent
+        if isinstance(state, dict):
+            route = state.get("route_to_agent")
+        else:
+            route = state.route_to_agent
         
         logger.info(f"Routing decision: {route}")
         
@@ -128,8 +130,13 @@ class AgentWorkflow:
         logger.info(f"KG ID: {initial_state.kg_id}")
         
         try:
-            # Run workflow
-            final_state = self.graph.invoke(initial_state)
+            result = self.graph.invoke(initial_state)
+            
+            if isinstance(result, dict):
+                logger.info("Converting dict result to AgentState")
+                final_state = AgentState(**result)
+            else:
+                final_state = result
             
             logger.info("WORKFLOW COMPLETED")
             logger.info(f"Success: {final_state.execution_success}")
@@ -143,3 +150,4 @@ class AgentWorkflow:
             initial_state.error_message = str(e)
             initial_state.execution_success = False
             return initial_state
+        

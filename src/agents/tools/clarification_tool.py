@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
-
+from datetime import datetime
 from ...openai_client import OpenAIClient
 from ...orchestration.agent_state import ClarificationRequest
 
@@ -28,14 +28,56 @@ class ClarificationTool:
     def __init__(self, openai_client: OpenAIClient):
         self.openai_client = openai_client
         
+    def _get_current_date_context(self) -> str:
+        """Get formatted current date context for prompts"""
+        now = datetime.now()
+        
+        # Get current and previous months
+        current_month = now.strftime("%B %Y")  # e.g., "January 2026"
+        current_year = now.year
+        current_month_num = now.month
+        
+        # Calculate last month
+        if current_month_num == 1:
+            last_month = f"December {current_year - 1}"
+            last_month_year = current_year - 1
+            last_month_num = 12
+        else:
+            last_month_num = current_month_num - 1
+            last_month_year = current_year
+            last_month = datetime(current_year, last_month_num, 1).strftime("%B %Y")
+        
+        # Calculate two months ago
+        if last_month_num == 1:
+            two_months_ago = f"December {last_month_year - 1}"
+        else:
+            two_months_ago_num = last_month_num - 1
+            two_months_ago = datetime(last_month_year, two_months_ago_num, 1).strftime("%B %Y")
+        
+        context = f"""
+            **CURRENT DATE CONTEXT:**
+            - Today's Date: {now.strftime("%B %d, %Y")} ({now.strftime("%Y-%m-%d")})
+            - Current Month: {current_month}
+            - Last Month: {last_month}
+            - Two Months Ago: {two_months_ago}
+            - Current Year: {current_year}
+            - Last Year: {current_year - 1}
+
+            Use these EXACT dates when generating time-based options. Do not use outdated dates.
+        """
+        
+        return context
+        
     def detect_ambiguities(self, user_query: str) -> Dict:
         """
             Detect ambiguities in user query using pattern matching and LLM.
         """
         logger.info(f"Detecting ambiguities in query: '{user_query}'")
         
+        date_context = self._get_current_date_context()
+        
         prompt = f"""Analyze this database query for ambiguities that would prevent accurate SQL generation.
-
+            {date_context}
             User Query: "{user_query}"
 
             Identify any ambiguities such as:
@@ -105,11 +147,13 @@ class ClarificationTool:
         """
         logger.info(f"Generating MCQ for ambiguities: {ambiguities}")
         
+        date_context = self._get_current_date_context()
+        
         # Format ambiguities for prompt
         ambiguities_text = "\n".join(f"- {amb}" for amb in ambiguities)
         
         prompt = f"""Generate a multiple-choice question to clarify the ambiguities in this database query.
-
+            {date_context}
             User Query: "{user_query}"
 
             Detected Ambiguities:
@@ -157,8 +201,8 @@ class ClarificationTool:
             logger.error(f"MCQ generation failed: {e}")
             # Fallback to basic clarification
             return ClarificationRequest(
-                question=f"The query is ambiguous. Please clarify: {ambiguities[0] if ambiguities else 'your intent'}",
-                options=["Option 1", "Option 2", "Option 3"],
+                question=f"The query is ambiguous. Please clarify: {ambiguities[0] if ambiguities else ''}",
+                options=[],
                 detected_ambiguity=", ".join(ambiguities)
             )
         
