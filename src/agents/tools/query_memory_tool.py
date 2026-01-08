@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 
-from openai_client import OpenAIClient
+from ...openai_client import OpenAIClient
 from ...memory.query_memory_repository import QueryMemoryRepository
 
 logger = logging.getLogger(__name__)

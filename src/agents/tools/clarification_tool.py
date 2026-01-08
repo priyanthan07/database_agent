@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
 
-from openai_client import OpenAIClient
+from ...openai_client import OpenAIClient
 from ...orchestration.agent_state import ClarificationRequest
 
 logger = logging.getLogger(__name__)

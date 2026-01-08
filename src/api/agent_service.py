@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List
 from uuid import UUID
 
 from ..kg.manager.kg_manager import KGManager
-from openai_client import OpenAIClient
+from ..openai_client import OpenAIClient
 from ..memory.query_memory_repository import QueryMemoryRepository
 from ..orchestration.agent_state import AgentState
 from ..orchestration.workflow_graph import AgentWorkflow

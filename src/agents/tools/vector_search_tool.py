@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Any
 
 from ...kg.manager.kg_manager import KGManager
-from openai_client import OpenAIClient
+from ...openai_client import OpenAIClient
 
 logger = logging.getLogger(__name__)
 

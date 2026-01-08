@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 
 from ..kg.manager.kg_manager import KGManager
-from openai_client import OpenAIClient
+from ..openai_client import OpenAIClient
 from ..orchestration.agent_state import AgentState
 
 logger = logging.getLogger(__name__)
