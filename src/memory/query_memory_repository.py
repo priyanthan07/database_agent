@@ -1,0 +1,246 @@
+import logging
+import json
+import numpy as np
+from typing import List, Dict, Any, Optional
+from uuid import UUID, uuid4
+from psycopg2.extras import RealDictCursor, execute_values
+
+
+logger = logging.getLogger(__name__)
+
+
+class QueryMemoryRepository:
+    """Manages query logs and error patterns in PostgreSQL"""
+    
+    def __init__(self, kg_conn):
+        self.conn = kg_conn
+        
+    def insert_query_log(self, query_data: Dict[str, Any]) -> bool:
+        """
+            Insert query log into kg_query_log table.
+        """
+        logger.info("Inserting query log")
+        
+        query = """
+            INSERT INTO kg_query_log (
+                query_id, kg_id, user_question, refined_query, intent_summary,
+                selected_tables, generated_sql, execution_success, execution_time_ms,
+                error_message, error_category, correction_summary, tables_used,
+                correction_applied, iterations_count, schema_retrieval_time_ms,
+                sql_generation_time_ms, confidence_score
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            RETURNING query_id
+        """
+        
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query, (
+                    str(uuid4()),
+                    query_data["kg_id"],
+                    query_data["user_question"],
+                    query_data.get("refined_query"),
+                    query_data.get("intent_summary"),
+                    json.dumps(query_data.get("selected_tables", [])),
+                    query_data["generated_sql"],
+                    query_data["execution_success"],
+                    query_data.get("execution_time_ms"),
+                    query_data.get("error_message"),
+                    query_data.get("error_category"),
+                    query_data.get("correction_summary"),
+                    json.dumps(query_data.get("tables_used", [])),
+                    query_data.get("correction_applied", False),
+                    query_data.get("iterations_count", 1),
+                    query_data.get("schema_retrieval_time_ms"),
+                    query_data.get("sql_generation_time_ms"),
+                    query_data.get("confidence_score")
+                ))
+                
+                self.conn.commit()
+                logger.info("Query log inserted successfully")
+                return True
+                
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Failed to insert query log: {e}")
+            return False
+    
+    def search_similar_queries(
+        self,
+        kg_id: str,
+        query_embedding: List[float],
+        limit: int = 5,
+        only_successful: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+            Search for similar queries using vector similarity.
+        """
+        logger.info(f"Searching for similar queries (limit={limit})")
+        
+        query = """
+            SELECT 
+                query_id,
+                user_question,
+                generated_sql,
+                execution_success,
+                tables_used,
+                confidence_score,
+                created_at
+            FROM kg_query_log
+            WHERE kg_id = %s
+                AND execution_success = %s
+            ORDER BY created_at DESC
+            LIMIT %s
+        """
+        
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(query, (kg_id, only_successful, limit))
+                results = cur.fetchall()
+                
+                formatted_results = []
+                for row in results:
+                    formatted_results.append({
+                        "query_id": str(row["query_id"]),
+                        "user_question": row["user_question"],
+                        "generated_sql": row["generated_sql"],
+                        "execution_success": row["execution_success"],
+                        "tables_used": json.loads(row["tables_used"]) if row["tables_used"] else [],
+                        "confidence_score": float(row["confidence_score"]) if row["confidence_score"] else 0.0,
+                        "similarity": 0.8  # Placeholder
+                    })
+                
+                logger.info(f"Found {len(formatted_results)} similar queries")
+                return formatted_results
+                
+        except Exception as e:
+            logger.error(f"Failed to search similar queries: {e}")
+            return []
+    
+    def get_error_patterns(
+        self,
+        kg_id: str,
+        error_category: Optional[str] = None,
+        limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+            Retrieve error patterns from query_error_patterns table.
+        """
+        logger.info(f"Retrieving error patterns (category={error_category})")
+        
+        query = """
+            SELECT 
+                pattern_id,
+                error_category,
+                error_pattern,
+                example_error_message,
+                fix_applied,
+                occurrence_count,
+                success_rate_after_fix,
+                last_seen
+            FROM query_error_patterns
+            WHERE kg_id = %s
+                AND is_active = true
+        """
+        
+        params = [kg_id]
+        
+        if error_category:
+            query += " AND error_category = %s"
+            params.append(error_category)
+        
+        query += " ORDER BY occurrence_count DESC LIMIT %s"
+        params.append(limit)
+        
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(query, params)
+                results = cur.fetchall()
+                
+                patterns = []
+                for row in results:
+                    patterns.append({
+                        "pattern_id": str(row["pattern_id"]),
+                        "error_category": row["error_category"],
+                        "error_pattern": row["error_pattern"],
+                        "example_error_message": row["example_error_message"],
+                        "fix_applied": row["fix_applied"],
+                        "occurrence_count": row["occurrence_count"],
+                        "success_rate_after_fix": float(row["success_rate_after_fix"]) if row["success_rate_after_fix"] else None
+                    })
+                
+                logger.info(f"Retrieved {len(patterns)} error patterns")
+                return patterns
+                
+        except Exception as e:
+            logger.error(f"Failed to retrieve error patterns: {e}")
+            return []
+    
+    def insert_error_pattern(self, pattern_data: Dict[str, Any]) -> bool:
+        """
+            Insert or update error pattern.
+        """
+        logger.info("Inserting/updating error pattern")
+        
+        query = """
+            INSERT INTO query_error_patterns (
+                pattern_id, kg_id, error_category, error_pattern,
+                example_error_message, fix_applied, affected_tables,
+                occurrence_count
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            ON CONFLICT (kg_id, error_category, error_pattern)
+            DO UPDATE SET
+                occurrence_count = query_error_patterns.occurrence_count + 1,
+                last_seen = CURRENT_TIMESTAMP
+            RETURNING pattern_id
+        """
+        
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query, (
+                    str(uuid4()),
+                    pattern_data["kg_id"],
+                    pattern_data["error_category"],
+                    pattern_data["error_pattern"],
+                    pattern_data.get("example_error_message"),
+                    pattern_data["fix_applied"],
+                    json.dumps(pattern_data.get("affected_tables", [])),
+                    1  # Initial occurrence count
+                ))
+                
+                self.conn.commit()
+                logger.info("Error pattern inserted/updated successfully")
+                return True
+                
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Failed to insert error pattern: {e}")
+            return False
+    
+    def update_query_embedding(self, query_id: str, embedding: List[float]) -> bool:
+        """
+            Update query embedding for similarity search.
+        """
+        query = """
+            UPDATE kg_query_log
+            SET query_embedding = %s
+            WHERE query_id = %s
+        """
+        
+        try:
+            with self.conn.cursor() as cur:
+                # Convert embedding to bytes for storage
+                embedding_bytes = json.dumps(embedding).encode('utf-8')
+                cur.execute(query, (embedding_bytes, query_id))
+                self.conn.commit()
+                return True
+                
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Failed to update query embedding: {e}")
+            return False
+        
