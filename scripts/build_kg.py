@@ -8,7 +8,7 @@ import psycopg2
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from config.settings import Settings
-from src.kg.generators.openai_client import OpenAIClient
+from src.openai_client import OpenAIClient
 from src.kg.builders.kg_builder import KGBuilder
 
 # Configure logging

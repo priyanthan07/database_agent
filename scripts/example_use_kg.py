@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from src.kg.models import KnowledgeGraph
 from config.settings import Settings
 from src.kg.manager.kg_manager import KGManager
-from src.kg.generators.openai_client import OpenAIClient
+from src.openai_client import OpenAIClient
 
 def kg_to_json(kg: KnowledgeGraph, output_path: str = "kg_export.json"):
     """Export KG to JSON file"""
