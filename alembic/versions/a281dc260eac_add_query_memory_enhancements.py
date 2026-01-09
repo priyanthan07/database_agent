@@ -65,6 +65,16 @@ def upgrade() -> None:
         )
     )
     
+    op.add_column(
+    'kg_query_log',
+    sa.Column(
+        'refined_query',
+        sa.Text(),
+        nullable=True,
+        comment='User query after applying clarifications'
+    )
+)
+    
     # Add correction_summary column to track fixes
     op.add_column(
         'kg_query_log',
@@ -323,6 +333,7 @@ def downgrade() -> None:
     op.drop_column('kg_query_log', 'sql_generation_time_ms')
     op.drop_column('kg_query_log', 'schema_retrieval_time_ms')
     op.drop_column('kg_query_log', 'correction_summary')
+    op.drop_column('kg_query_log', 'refined_query')
     op.drop_column('kg_query_log', 'error_category')
     op.drop_column('kg_query_log', 'selected_tables')
     op.drop_column('kg_query_log', 'intent_summary')

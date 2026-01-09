@@ -81,6 +81,8 @@ class ExecutorValidatorAgent(BaseAgent):
                     state.route_to_agent = "complete"
                     # Store failed query for learning
                     self._store_query_log(state, success=False)
+                    self._store_error_pattern(state)
+                    
                 else:
                     # Route to appropriate agent for correction
                     route_decision = self.error_router.route_error(
@@ -96,6 +98,9 @@ class ExecutorValidatorAgent(BaseAgent):
                         f"Routing to {state.route_to_agent} for correction "
                         f"(retry {state.retry_count}/{state.max_retries})"
                     )
+                    
+                    # Store error pattern even during retries
+                    self._store_error_pattern(state)
             
             self.log_end(state, success=state.execution_success)
             return state
@@ -104,6 +109,7 @@ class ExecutorValidatorAgent(BaseAgent):
             self.logger.error(f"Execution failed: {e}", exc_info=True)
             self.record_error(state, "execution_error", str(e))
             state.route_to_agent = "complete"
+            self._store_query_log(state, success=False)
             self.log_end(state, success=False)
             return state
     
@@ -177,10 +183,96 @@ class ExecutorValidatorAgent(BaseAgent):
             }
             
             # Store in repository
-            self.memory_repository.insert_query_log(query_log)
+            success_result = self.memory_repository.insert_query_log(query_log)
             
-            self.logger.info("Query log stored successfully")
+            if success_result:
+                self.logger.info("✓ Query log stored successfully in kg_query_log table")
+            else:
+                self.logger.error("✗ Failed to store query log")
             
         except Exception as e:
             self.logger.error(f"Failed to store query log: {e}")
+            
+    def _store_error_pattern(self, state: AgentState):
+        """Store error pattern for future learning"""
+        try:
+            if not state.error_message or not state.error_category:
+                self.logger.warning("No error information to store")
+                return
+            
+            # Extract pattern from error message
+            error_pattern = self._extract_error_pattern(
+                state.error_message,
+                state.error_category
+            )
+            
+            # Determine fix applied
+            fix_applied = state.correction_summary if state.correction_summary else "Retry with different approach"
+            
+            # Build error pattern data
+            pattern_data = {
+                "kg_id": str(state.kg_id),
+                "error_category": state.error_category,
+                "error_pattern": error_pattern,
+                "example_error_message": state.error_message[:500],  # Truncate to 500 chars
+                "fix_applied": fix_applied,
+                "affected_tables": state.final_tables if state.final_tables else []
+            }
+            
+            # Store in repository
+            success_result = self.memory_repository.insert_error_pattern(pattern_data)
+            
+            if success_result:
+                self.logger.info(f"✓ Error pattern stored successfully in query_error_patterns table")
+                self.logger.info(f"   Category: {state.error_category}")
+                self.logger.info(f"   Pattern: {error_pattern}")
+            else:
+                self.logger.error("✗ Failed to store error pattern")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to store error pattern: {e}", exc_info=True)
+    
+    def _extract_error_pattern(self, error_message: str, error_category: str) -> str:
+        """Extract a generalized pattern from specific error message"""
+        
+        # Map of error categories to patterns
+        category_patterns = {
+            "column_not_found": "Referenced column does not exist in selected tables",
+            "table_not_found": "Referenced table does not exist or is not in selected schema",
+            "syntax_error": "SQL syntax error in query construction",
+            "join_error": "Missing or incorrect JOIN condition between tables",
+            "type_mismatch": "Data type mismatch in comparison or operation",
+            "ambiguous_reference": "Column reference is ambiguous without table qualifier",
+            "logic_error": "Logical error in query (division by zero, invalid condition, etc.)",
+            "permission_denied": "Insufficient permissions to access table or column",
+            "timeout": "Query execution exceeded timeout limit"
+        }
+        
+        # Get generic pattern for category
+        generic_pattern = category_patterns.get(
+            error_category,
+            "Unclassified error occurred during query execution"
+        )
+        
+        # Try to extract specific details from error message
+        error_lower = error_message.lower()
+        
+        if "column" in error_lower and "does not exist" in error_lower:
+            # Try to extract column name
+            import re
+            match = re.search(r'column "([^"]+)"', error_message, re.IGNORECASE)
+            if match:
+                col_name = match.group(1)
+                return f"Column '{col_name}' not found in selected table schema"
+        
+        elif "relation" in error_lower and "does not exist" in error_lower:
+            # Try to extract table name
+            import re
+            match = re.search(r'relation "([^"]+)"', error_message, re.IGNORECASE)
+            if match:
+                table_name = match.group(1)
+                return f"Table '{table_name}' not found or not selected"
+        
+        # Return generic pattern if specific extraction fails
+        return generic_pattern
             
