@@ -50,7 +50,7 @@ class ExecutorValidatorAgent(BaseAgent):
             
             # Step 2: Handle result
             if execution_result["success"]:
-                self.logger.info("✓ SQL execution successful")
+                self.logger.info(" SQL execution successful")
                 state.execution_success = True
                 state.execution_result = execution_result["data"]
                 state.final_result = execution_result["data"]
@@ -60,7 +60,7 @@ class ExecutorValidatorAgent(BaseAgent):
                 self._store_query_log(state, success=True)
                 
             else:
-                self.logger.error(f"✗ SQL execution failed: {execution_result['error']}")
+                self.logger.error(f" SQL execution failed: {execution_result['error']}")
                 state.execution_success = False
                 state.error_message = execution_result["error"]
                 

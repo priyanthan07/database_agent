@@ -167,11 +167,8 @@ class ClarificationTool:
             - Options should be specific and actionable (e.g., "December 2025" not "last month")
             - Options should cover the most likely interpretations
             - Avoid vague or overlapping options
-
-            Examples of good options:
-            - Time: ["December 2025", "November 2025", "December 2024", "Last 30 days"]
-            - Ranking: ["By Total Revenue", "By Quantity Sold", "By Number of Orders", "By Average Rating"]
-            - Threshold: ["Greater than $1,000", "Greater than $5,000", "Greater than $10,000", "Top 10%"]
+            - This step is to understand the user motive clearly so create the MCQs according to that.
+            - Stricly do not hallcuante. Do not make any mistakes.
         """
 
         try:

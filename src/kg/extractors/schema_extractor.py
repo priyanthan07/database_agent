@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class SchemaExtractor:
     """Orchestrates all extraction operations."""
     
-    def __init__(self, connection, openai_client=None):
+    def __init__(self, connection):
         self.conn = connection
         self.table_extractor = TableExtractor(connection)
         self.column_extractor = ColumnExtractor(connection)

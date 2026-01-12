@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from uuid import UUID
 
 from ..kg.manager.kg_manager import KGManager
@@ -18,7 +18,6 @@ class AgentService:
     """
         Main service for text-to-SQL agent system.
     """
-    
     def __init__(
         self,
         kg_manager: KGManager,

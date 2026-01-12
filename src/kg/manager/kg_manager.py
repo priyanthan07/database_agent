@@ -27,7 +27,6 @@ class KGManager:
             # Cache it
             self.loaded_kgs[str(kg_id)] = kg
             logger.info(f"Loaded and cached KG: {kg_id}")
-        
         return kg
     
     def get_kg_by_source(self, source_db_hash: str) -> Optional[KnowledgeGraph]:
@@ -40,3 +39,4 @@ class KGManager:
     def get_vector_collection(self, kg_id: UUID):
         """Get Chroma collection for a KG"""
         return self.vector_store.get_or_create_collection(str(kg_id))
+    

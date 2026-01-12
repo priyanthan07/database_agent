@@ -115,6 +115,8 @@ class SQLGeneratorAgent(BaseAgent):
         state: AgentState,
         similar_queries: list,
         error_patterns: list
+        
+        
     ) -> Dict[str, Any]:
         """Generate SQL using LLM with context"""
         
