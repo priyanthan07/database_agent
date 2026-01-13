@@ -44,11 +44,14 @@ class SchemaSelectorAgent(BaseAgent):
             # Use refined query if available, otherwise use original
             query = state.refined_query if state.refined_query else state.user_query
             
+            # Generate embedding for query
+            query_embedding = self.openai_client.generate_embeddings([query])[0]
+            
             # Step 1: Vector search for candidate tables
             self.logger.info("Step 1: Performing vector search for tables")
             vector_results = self.vector_search.search_tables(
                 kg_id=str(state.kg_id),
-                query=query,
+                query_embedding=query_embedding,
                 k=10
             )
             

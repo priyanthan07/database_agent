@@ -16,20 +16,18 @@ class VectorSearchTool:
     def search_tables(
         self,
         kg_id: str,
-        query: str,
+        query_embedding: str,
         k: int = 10
     ) -> List[Dict[str, Any]]:
         """
             Search for relevant tables using vector similarity.
         """
-        logger.info(f"Vector search for query: '{query}' (K={k})")
+        logger.info(f"Vector search for query. (K={k})")
         
         try:
             # Get Chroma collection for this KG
             collection = self.kg_manager.get_vector_collection(kg_id)
             
-            # Generate embedding for query
-            query_embedding = self.openai_client.generate_embeddings([query])[0]
             
             # Search for similar tables
             results = self.kg_manager.vector_store.search_tables(
