@@ -186,7 +186,8 @@ class ExecutorValidatorAgent(BaseAgent):
                 "iterations_count": state.retry_count + 1,
                 "schema_retrieval_time_ms": state.schema_retrieval_time_ms,
                 "sql_generation_time_ms": state.sql_generation_time_ms,
-                "confidence_score": state.confidence_score
+                "confidence_score": state.confidence_score,
+                "query_embedding": state.query_embedding
             }
             
             # Store in repository

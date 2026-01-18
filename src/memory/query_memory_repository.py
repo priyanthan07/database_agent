@@ -27,15 +27,21 @@ class QueryMemoryRepository:
                 selected_tables, generated_sql, execution_success, execution_time_ms,
                 error_message, error_category, correction_summary, tables_used,
                 correction_applied, iterations_count, schema_retrieval_time_ms,
-                sql_generation_time_ms, confidence_score
+                sql_generation_time_ms, confidence_score, query_embedding, created_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
             )
             RETURNING query_id
         """
         
         try:
+            embedding_json = None
+            if "query_embedding" in query_data and query_data["query_embedding"]:
+                embedding_list = query_data["query_embedding"]
+                embedding_str = '[' + ','.join(map(str, embedding_list)) + ']'
+                logger.debug(f"Embedding length: {len(embedding_list)} dimensions")
+            
             with self.conn.cursor() as cur:
                 cur.execute(query, (
                     str(uuid4()),
@@ -55,7 +61,8 @@ class QueryMemoryRepository:
                     query_data.get("iterations_count", 1),
                     query_data.get("schema_retrieval_time_ms"),
                     query_data.get("sql_generation_time_ms"),
-                    query_data.get("confidence_score")
+                    query_data.get("confidence_score"),
+                    embedding_str
                 ))
                 
                 self.conn.commit()
@@ -79,6 +86,13 @@ class QueryMemoryRepository:
         """
         logger.info(f"Searching for similar queries (limit={limit})")
         
+        # Convert embedding list to PostgreSQL vector format
+        # Format: '[val1,val2,val3,...]'
+        embedding_str = '[' + ','.join(map(str, query_embedding)) + ']'
+        
+        # Build query with pgvector's cosine distance operator (<=>)
+        # Note: <=> returns distance (0 = identical, 2 = opposite)
+        # We convert to similarity: 1 - (distance / 2) to get 0-1 scale
         query = """
             SELECT 
                 query_id,
@@ -88,17 +102,23 @@ class QueryMemoryRepository:
                 tables_used,
                 confidence_score,
                 created_at
+                1 - (query_embedding <=> %s::vector) / 2 AS similarity
             FROM kg_query_log
             WHERE kg_id = %s
                 AND execution_success = %s
-            ORDER BY created_at DESC
+                AND query_embedding IS NOT NULL
+            ORDER BY query_embedding <=> %s::vector
             LIMIT %s
         """
         
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(query, (kg_id, only_successful, limit))
+                cur.execute(query, (embedding_str, kg_id, only_successful, embedding_str, limit))
                 results = cur.fetchall()
+                
+                if not results:
+                    logger.info("No similar queries found with embeddings")
+                    return []
                 
                 formatted_results = []
                 for row in results:
@@ -113,6 +133,13 @@ class QueryMemoryRepository:
                     })
                 
                 logger.info(f"Found {len(formatted_results)} similar queries")
+                
+                for i, query_result in enumerate(formatted_results[:3], 1):
+                    logger.info(
+                        f"  {i}. '{query_result['user_question'][:60]}...' "
+                        f"(similarity: {query_result['similarity']:.3f})"
+                    )
+                
                 return formatted_results
                 
         except Exception as e:

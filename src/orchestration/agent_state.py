@@ -13,6 +13,7 @@ class AgentState(BaseModel):
     kg_id: UUID
     user_query: str
     query_timestamp: datetime = Field(default_factory=datetime.now)
+    query_embedding: Optional[List[float]] = None
     
     # Phase 1: Query Understanding & Clarification
     detected_ambiguities: List[str] = Field(default_factory=list)

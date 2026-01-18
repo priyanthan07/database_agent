@@ -46,6 +46,7 @@ class SchemaSelectorAgent(BaseAgent):
             
             # Generate embedding for query
             query_embedding = self.openai_client.generate_embeddings([query])[0]
+            state.query_embedding = query_embedding
             
             # Step 1: Vector search for candidate tables
             self.logger.info("Step 1: Performing vector search for tables")
