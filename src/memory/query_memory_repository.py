@@ -30,7 +30,7 @@ class QueryMemoryRepository:
                 sql_generation_time_ms, confidence_score, query_embedding, created_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+                %s, %s, %s, %s, %s, %s, %s, %s, %s::vector, NOW()
             )
             RETURNING query_id
         """
@@ -247,27 +247,4 @@ class QueryMemoryRepository:
             self.conn.rollback()
             logger.error(f"Failed to insert error pattern: {e}")
             return False
-    
-    def update_query_embedding(self, query_id: str, embedding: List[float]) -> bool:
-        """
-            Update query embedding for similarity search.
-        """
-        query = """
-            UPDATE kg_query_log
-            SET query_embedding = %s
-            WHERE query_id = %s
-        """
-        
-        try:
-            with self.conn.cursor() as cur:
-                # Convert embedding to bytes for storage
-                embedding_bytes = json.dumps(embedding).encode('utf-8')
-                cur.execute(query, (embedding_bytes, query_id))
-                self.conn.commit()
-                return True
-                
-        except Exception as e:
-            self.conn.rollback()
-            logger.error(f"Failed to update query embedding: {e}")
-            return False
-        
+            
