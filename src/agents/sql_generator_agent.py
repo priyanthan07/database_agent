@@ -81,18 +81,10 @@ class SQLGeneratorAgent(BaseAgent):
             if not validation_result["is_valid"]:
                 self.logger.warning(f"SQL validation failed: {validation_result['errors']}")
                 
-                # Attempt self-correction (max 2 times)
-                if state.retry_count < 2:
-                    self.logger.info("Attempting self-correction...")
-                    state = self._self_correct_sql(state, validation_result)
-                else:
-                    # Max retries reached, record error
-                    self.record_error(
-                        state,
-                        "sql_syntax_error",
-                        f"SQL validation failed: {validation_result['errors']}"
-                    )
-                    state.route_to_agent = "agent_3"  # Let Agent 3 handle it
+                # Attempt self-correction
+                self.logger.info("Attempting self-correction...")
+                state = self._self_correct_sql(state, validation_result)
+
             else:
                 self.logger.info("SQL validation passed")
                 state.route_to_agent = "agent_3"
