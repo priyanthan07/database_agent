@@ -21,6 +21,12 @@ class QueryMemoryRepository:
         """
         logger.info("Inserting query log")
         
+        # IMPORTANT: Rollback any previous failed transactions
+        try:
+            self.conn.rollback()
+        except:
+            pass
+        
         query = """
             INSERT INTO kg_query_log (
                 query_id, kg_id, user_question, refined_query, intent_summary,
@@ -101,7 +107,7 @@ class QueryMemoryRepository:
                 execution_success,
                 tables_used,
                 confidence_score,
-                created_at
+                created_at,
                 1 - (query_embedding <=> %s::vector) / 2 AS similarity
             FROM kg_query_log
             WHERE kg_id = %s
@@ -127,9 +133,9 @@ class QueryMemoryRepository:
                         "user_question": row["user_question"],
                         "generated_sql": row["generated_sql"],
                         "execution_success": row["execution_success"],
-                        "tables_used": json.loads(row["tables_used"]) if row["tables_used"] else [],
+                        "tables_used": row["tables_used"] if row["tables_used"] else [],
                         "confidence_score": float(row["confidence_score"]) if row["confidence_score"] else 0.0,
-                        "similarity": 0.8  # Placeholder
+                        "similarity": float(row["similarity"]) if row.get("similarity") else 0.0
                     })
                 
                 logger.info(f"Found {len(formatted_results)} similar queries")
@@ -156,6 +162,12 @@ class QueryMemoryRepository:
             Retrieve error patterns from query_error_patterns table.
         """
         logger.info(f"Retrieving error patterns (category={error_category})")
+        
+        # IMPORTANT: Rollback any previous failed transactions
+        try:
+            self.conn.rollback()
+        except:
+            pass
         
         query = """
             SELECT 
@@ -211,18 +223,25 @@ class QueryMemoryRepository:
         """
         logger.info("Inserting/updating error pattern")
         
+        # IMPORTANT: Rollback any previous failed transactions
+        try:
+            self.conn.rollback()
+        except:
+            pass
+        
         query = """
             INSERT INTO query_error_patterns (
                 pattern_id, kg_id, error_category, error_pattern,
                 example_error_message, fix_applied, affected_tables,
-                occurrence_count
+                occurrence_count, first_seen, last_seen
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
             )
-            ON CONFLICT (kg_id, error_category, error_pattern)
+            ON CONFLICT (kg_id, error_pattern)
             DO UPDATE SET
                 occurrence_count = query_error_patterns.occurrence_count + 1,
                 last_seen = CURRENT_TIMESTAMP
+                example_error_message = EXCLUDED.example_error_message
             RETURNING pattern_id
         """
         
