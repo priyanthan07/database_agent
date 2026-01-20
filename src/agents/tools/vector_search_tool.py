@@ -51,7 +51,7 @@ class VectorSearchTool:
                 })
             
             # Log top 3 results
-            for i, result in enumerate(formatted_results[:3], 1):
+            for i, result in enumerate(formatted_results, 1):
                 logger.info(
                     f"  {i}. {result['table_name']} "
                     f"(domain: {result['business_domain']}, "

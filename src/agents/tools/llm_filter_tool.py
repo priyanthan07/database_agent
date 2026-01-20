@@ -73,7 +73,7 @@ class LLMFilterTool:
             )
             
             logger.info(f"LLM selected {len(result.selected_tables)} tables")
-            logger.info(f"Reasoning: {result.reasoning[:200]}...")
+            logger.info(f"Reasoning: {result.reasoning}...")
             logger.info(f"Confidence: {result.confidence}")
             logger.info(f"Selected: {', '.join(result.selected_tables)}")
             

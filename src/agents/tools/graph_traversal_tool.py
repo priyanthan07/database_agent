@@ -60,6 +60,57 @@ class GraphTraversalTool:
         
         return bridging_list
     
+    def find_enrichment_tables(
+        self,
+        kg: KnowledgeGraph,
+        selected_tables: List[str]
+    ) -> List[str]:
+        
+        """
+            Find enrichment tables that provide human-readable values for foreign keys.
+        """
+        logger.info(f"Finding enrichment tables for: {selected_tables}")
+        enrichment_tables = set()
+        selected_set = set(selected_tables)
+        
+        # For each selected table, find tables it references via foreign keys
+        for table_name in selected_tables:
+            table = kg.get_table(table_name)
+            if not table:
+                continue
+            
+            # Get relationships where this table is the "from" side (has the FK)
+            relationships = kg.get_relationships_for_table(table_name)
+            
+            for rel in relationships:
+                if rel.from_table_name == table_name:
+                    referenced_table = rel.to_table_name
+                    
+                    # Skip if already selected or is a self-reference
+                    if referenced_table in selected_set or rel.is_self_reference:
+                        continue
+                    
+                    fk_column = rel.from_column
+                    
+                    logger.info(
+                        f"  Found FK relationship: {table_name}.{fk_column} -> "
+                        f"{referenced_table}.{rel.to_column}"
+                    )
+                    
+                    enrichment_tables.add(referenced_table)
+                    
+        # Remove any tables already in selected
+        enrichment_tables = enrichment_tables - selected_set
+        enrichment_list = list(enrichment_tables)
+        
+        if enrichment_list:
+            logger.info(f"Enrichment tables found: {enrichment_list}")
+        else:
+            logger.info("No enrichment tables needed")
+        
+        return enrichment_list
+        
+        
     def _build_graph(self, kg: KnowledgeGraph) -> Dict[str, Set[str]]:
         """
             Build undirected adjacency list from relationships

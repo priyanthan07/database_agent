@@ -91,13 +91,36 @@ class SchemaSelectorAgent(BaseAgent):
             )
             state.bridging_tables = bridging_tables
             
-            # Combine selected and bridging tables
-            state.final_tables = state.selected_tables + bridging_tables
+            # Step 4: Find enrichment tables for foreign key resolution
+            self.logger.info("Step 4: Finding enrichment tables for FK resolution")
             
-            self.logger.info(f"Final tables (including bridging): {state.final_tables}")
+            # Combine selected + bridging for enrichment check
+            tables_so_far = state.selected_tables + bridging_tables
             
-            # Step 4: Load full KG context for all final tables
-            self.logger.info("Step 4: Loading full KG context for selected tables")
+            enrichment_tables = self.graph_traversal.find_enrichment_tables(
+                kg=kg,
+                selected_tables=tables_so_far
+            )
+            
+            if enrichment_tables:
+                self.logger.info(f"Enrichment tables found: {enrichment_tables}")
+            
+            # Combine all tables: selected + bridging + enrichment
+            all_tables = state.selected_tables + bridging_tables + enrichment_tables
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            state.final_tables = []
+            for t in all_tables:
+                if t not in seen:
+                    seen.add(t)
+                    state.final_tables.append(t)
+            
+            self.logger.info(f"Final tables (selected + bridging + enrichment): {state.final_tables}")
+        
+            
+            # Step 5: Load full KG context for all final tables
+            self.logger.info("Step 5: Loading full KG context for selected tables")
             state.table_contexts = self._load_full_table_contexts(kg, state.final_tables)
             
             # Validate that all tables are connected
