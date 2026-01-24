@@ -1,7 +1,7 @@
 import logging
 import time
 import psycopg2
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from psycopg2.extras import RealDictCursor
 
 from .base_agent import BaseAgent
@@ -15,7 +15,7 @@ class ExecutorValidatorAgent(BaseAgent):
         Agent 3: Execution & Validation
     """
     
-    def __init__(self, kg_manager, openai_client, source_db_conn, memory_repository):
+    def __init__(self, kg_manager, openai_client, source_db_conn, memory_repository, error_summary_manager=None):
         super().__init__(
             kg_manager=kg_manager,
             openai_client=openai_client,
@@ -24,6 +24,7 @@ class ExecutorValidatorAgent(BaseAgent):
         )
         
         self.memory_repository = memory_repository
+        self.error_summary_manager = error_summary_manager
         self.error_router = ErrorRouter(openai_client=openai_client)
         
         # SQL execution settings
@@ -38,6 +39,13 @@ class ExecutorValidatorAgent(BaseAgent):
         try:
             if not state.generated_sql:
                 raise ValueError("No SQL query to execute")
+            
+            previous_error = None
+            previous_category = None
+            if state.retry_count > 0 and state.error_history:
+                last_error = state.error_history[-1]
+                previous_error = last_error.get("error_message")
+                previous_category = last_error.get("error_category")
             
             # Step 1: Execute SQL
             self.logger.info("Step 1: Executing SQL query")
@@ -55,6 +63,17 @@ class ExecutorValidatorAgent(BaseAgent):
                 state.execution_result = execution_result["data"]
                 state.final_result = execution_result["data"]
                 state.route_to_agent = "complete"
+                
+                if state.retry_count > 0 and previous_error:
+                    state.is_retry_success = True
+                    state.previous_error_message = previous_error
+                    state.previous_error_category = previous_category
+                    state.fix_that_worked = state.correction_summary or "SQL regenerated with corrections"
+                    
+                    self.logger.info("Retry succeeded! Extracting lesson...")
+                    
+                    # Extract and store lesson from successful retry
+                    self._extract_and_store_lesson(state)
                 
                 # Store successful query in memory
                 self._store_query_log(state, success=True)
@@ -74,13 +93,19 @@ class ExecutorValidatorAgent(BaseAgent):
                 state.error_category = error_classification["sub_category"]
                 
                 self.logger.info(f"Error classified as: {error_classification['category']} / {error_classification['sub_category']}")
-                self.logger.info(f"Schema-related: {error_classification['is_schema_related']}, SQL-related: {error_classification['is_sql_generation_related']}")
                 
+                state.error_history.append({
+                    "error_message": state.error_message,
+                    "error_category": state.error_category,
+                    "sql": state.generated_sql,
+                    "retry_count": state.retry_count
+                })
                 
                 # Step 4: Decide on routing
                 if state.retry_count >= state.max_retries:
                     self.logger.warning(f"Max retries ({state.max_retries}) reached")
                     state.route_to_agent = "complete"
+                    
                     # Store failed query for learning
                     self._store_query_log(state, success=False)
                     self._store_error_pattern(state)
@@ -99,8 +124,7 @@ class ExecutorValidatorAgent(BaseAgent):
                         state.retry_count += 1
                     
                     self.logger.info(
-                        f"Routing to {state.route_to_agent} for correction "
-                        f"(retry {state.retry_count}/{state.max_retries})"
+                        f"Routing to {state.route_to_agent} for correction (retry {state.retry_count}/{state.max_retries})"
                     )
                     
                     self.logger.info(f"Priority action: {route_decision.get('priority_action', 'N/A')}")
@@ -165,14 +189,40 @@ class ExecutorValidatorAgent(BaseAgent):
         
         return result
     
+    def _extract_and_store_lesson(self, state: AgentState):
+        """Extract lesson from successful retry and store in summary"""
+        
+        if not self.error_summary_manager:
+            self.logger.warning("Error summary manager not available, skipping lesson extraction")
+            return
+        
+        try:
+            success = self.error_summary_manager.add_lesson_from_error(
+                kg_id=state.kg_id,
+                error_message=state.previous_error_message or "",
+                error_category=state.previous_error_category or "unknown",
+                fix_applied=state.fix_that_worked or "",
+                affected_tables=state.final_tables or [],
+                generated_sql=state.generated_sql or ""
+            )
+            
+            if success:
+                self.logger.info("Lesson extracted and added to summary")
+            else:
+                self.logger.warning("Failed to extract lesson from retry success")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to extract/store lesson: {e}")
+            
     def _store_query_log(self, state: AgentState, success: bool):
         """Store query log in memory for learning"""
         try:
+            final_query = state.refined_query if state.refined_query else state.user_query
             
             query_log = {
                 "kg_id": str(state.kg_id),
                 "user_question": state.user_query,
-                "refined_query": state.refined_query,
+                "refined_query": final_query,
                 "intent_summary": state.intent_summary,
                 "selected_tables": state.selected_tables,
                 "generated_sql": state.generated_sql,
@@ -187,7 +237,9 @@ class ExecutorValidatorAgent(BaseAgent):
                 "schema_retrieval_time_ms": state.schema_retrieval_time_ms,
                 "sql_generation_time_ms": state.sql_generation_time_ms,
                 "confidence_score": state.confidence_score,
-                "query_embedding": state.query_embedding
+                "query_embedding": state.query_embedding,
+                "user_feedback": state.user_feedback,
+                "user_feedback_rating": state.user_feedback_rating
             }
             
             # Store in repository

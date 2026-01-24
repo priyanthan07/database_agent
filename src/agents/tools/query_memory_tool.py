@@ -20,7 +20,7 @@ class QueryMemoryTool:
     def get_similar_queries(
         self,
         kg_id: str,
-        user_query: str,
+        state,
         limit: int = 5,
         only_successful: bool = True
     ) -> List[Dict[str, Any]]:
@@ -31,7 +31,7 @@ class QueryMemoryTool:
         
         try:
             # Generate embedding for current query
-            query_embedding = self.openai_client.generate_embeddings([user_query])[0]
+            query_embedding = state.query_embedding
             
             # Search in memory repository
             similar_queries = self.memory_repository.search_similar_queries(

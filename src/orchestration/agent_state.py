@@ -22,11 +22,15 @@ class AgentState(BaseModel):
     refined_query: Optional[str] = None
     intent_summary: Optional[str] = None
     
+    schema_lessons: Optional[str] = None # Lessons for Agent 1 (table selection)
+    sql_lessons: Optional[str] = None # Lessons for Agent 2 (SQL generation)
+    
     # Phase 2: Schema Selection (Agent 1)
     vector_search_results: List[Dict[str, Any]] = Field(default_factory=list)
     candidate_tables: List[str] = Field(default_factory=list)  # After vector search
     selected_tables: List[str] = Field(default_factory=list)   # After LLM filtering
     bridging_tables: List[str] = Field(default_factory=list)   # Added by graph traversal
+    enrichment_tables: List[str] = Field(default_factory=list) # Added by graph traversal
     final_tables: List[str] = Field(default_factory=list)      # All tables to use
     table_contexts: Dict[str, Dict] = Field(default_factory=dict)  # Full KG context per table
     schema_retrieval_time_ms: Optional[int] = None
@@ -52,6 +56,15 @@ class AgentState(BaseModel):
     max_retries: int = 3
     error_history: List[Dict[str, Any]] = Field(default_factory=list)
     route_to_agent: Optional[str] = None  # "agent_1", "agent_2", "agent_3", or "complete"
+    
+    is_retry_success: bool = False
+    previous_error_message: Optional[str] = None
+    previous_error_category: Optional[str] = None
+    fix_that_worked: Optional[str] = None
+    
+    # User Feedback (for learning)
+    user_feedback: Optional[str] = None
+    user_feedback_rating: Optional[int] = None
     
     # Final output
     final_result: Optional[Any] = None

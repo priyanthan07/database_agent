@@ -20,12 +20,14 @@ class AgentWorkflow:
         kg_manager,
         openai_client,
         source_db_conn,
-        memory_repository
+        memory_repository,
+        error_summary_manager=None
     ):
         self.kg_manager = kg_manager
         self.openai_client = openai_client
         self.source_db_conn = source_db_conn
         self.memory_repository = memory_repository
+        self.error_summary_manager = error_summary_manager
         
         # Initialize agents
         self.agent_1 = SchemaSelectorAgent(
@@ -45,7 +47,8 @@ class AgentWorkflow:
             kg_manager=kg_manager,
             openai_client=openai_client,
             source_db_conn=source_db_conn,
-            memory_repository=memory_repository
+            memory_repository=memory_repository,
+            error_summary_manager=error_summary_manager
         )
         
         # Build workflow graph
@@ -141,6 +144,10 @@ class AgentWorkflow:
             logger.info("WORKFLOW COMPLETED")
             logger.info(f"Success: {final_state.execution_success}")
             logger.info(f"Iterations: {final_state.retry_count + 1}")
+            
+            if final_state.is_retry_success:
+                logger.info("Note: Success was achieved after retry (lesson extracted)")
+                
             logger.info(f"Total Time: {final_state.total_time_ms}ms")
             
             return final_state

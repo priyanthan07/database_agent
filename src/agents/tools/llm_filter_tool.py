@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 from ...openai_client import OpenAIClient
@@ -23,7 +23,8 @@ class LLMFilterTool:
         user_query: str,
         candidate_tables: List[Dict[str, Any]],
         kg_context: Dict[str, Any],
-        max_tables: int = 5
+        max_tables: int = 5,
+        schema_lessons: Optional[str] = None
     ) -> Dict[str, Any]:
         """Filter candidate tables using LLM reasoning."""
         
@@ -32,12 +33,25 @@ class LLMFilterTool:
         # Prepare prompt
         candidates_text = self._format_candidates(candidate_tables)
         
+        lessons_section = ""
+        if schema_lessons and schema_lessons.strip():
+            lessons_section = f"""
+                IMPORTANT - Learned Rules from Past Mistakes:
+                {schema_lessons}
+
+                Apply these rules when selecting tables. These rules were derived from previous errors and their successful fixes.
+            """
+            
+            logger.info(f"Including {len(schema_lessons.split(chr(10)))} schema lessons in prompt")
+        
         prompt = f"""You are a database expert analyzing which tables are needed to answer a user's question.
 
                     User Query: "{user_query}"
 
                     Candidate Tables (from vector search):
                     {candidates_text}
+                    
+                    {lessons_section}
 
                     Your task:
                     1. Think step-by-step about what data is needed to answer the query
@@ -53,9 +67,8 @@ class LLMFilterTool:
                     Action: Select the necessary tables
 
                     Important:
-                    - Select ONLY tables that are directly relevant
-                    - Fewer tables is better if they contain all needed data
-                    - Consider foreign key relationships for JOINs
+                    - Include tables needed for meaningful output (names, descriptions, not just IDs)
+                    - Consider foreign key relationships
                     - Don't select redundant tables
                 """
         try:

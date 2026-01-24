@@ -62,21 +62,33 @@ class SchemaSelectorAgent(BaseAgent):
             if not state.candidate_tables:
                 raise ValueError("No candidate tables found in vector search")
             
+            self.logger.info(f"Vector search found {len(state.candidate_tables)} candidates")
+            
             # Step 2: LLM filtering to select best tables
             self.logger.info("Step 2: LLM filtering to select relevant tables")
             
             # Prepare KG context for LLM
             kg_context = self._prepare_kg_context(kg, state.candidate_tables)
             
+            schema_lessons = state.schema_lessons or ""
+            
+            if schema_lessons:
+                self.logger.info(f"Using schema lessons from error summary")
+            
             llm_result = self.llm_filter.filter_tables(
                 user_query=query,
                 candidate_tables=vector_results,
                 kg_context=kg_context,
-                max_tables=5
+                max_tables=5,
+                schema_lessons=schema_lessons
             )
             
             state.selected_tables = llm_result["selected_tables"]
             state.confidence_score = llm_result["confidence"]
+            
+            if llm_result.get("reasoning"):
+                # Take first 200 chars of reasoning as intent summary
+                state.intent_summary = llm_result["reasoning"]
             
             if not state.selected_tables:
                 raise ValueError("LLM did not select any tables")
@@ -91,6 +103,9 @@ class SchemaSelectorAgent(BaseAgent):
             )
             state.bridging_tables = bridging_tables
             
+            if bridging_tables:
+                self.logger.info(f"Bridging tables: {bridging_tables}")
+            
             # Step 4: Find enrichment tables for foreign key resolution
             self.logger.info("Step 4: Finding enrichment tables for FK resolution")
             
@@ -101,6 +116,8 @@ class SchemaSelectorAgent(BaseAgent):
                 kg=kg,
                 selected_tables=tables_so_far
             )
+            
+            state.enrichment_tables = enrichment_tables
             
             if enrichment_tables:
                 self.logger.info(f"Enrichment tables found: {enrichment_tables}")
@@ -117,7 +134,6 @@ class SchemaSelectorAgent(BaseAgent):
                     state.final_tables.append(t)
             
             self.logger.info(f"Final tables (selected + bridging + enrichment): {state.final_tables}")
-        
             
             # Step 5: Load full KG context for all final tables
             self.logger.info("Step 5: Loading full KG context for selected tables")
@@ -212,3 +228,4 @@ class SchemaSelectorAgent(BaseAgent):
             }
         
         return contexts
+    

@@ -44,25 +44,31 @@ class SQLGeneratorAgent(BaseAgent):
             self.logger.info("Step 1: Retrieving similar past queries")
             similar_queries = self.query_memory.get_similar_queries(
                 kg_id=str(state.kg_id),
-                user_query=state.user_query,
+                state=state,
                 limit=5,
                 only_successful=True
             )
             state.similar_past_queries = similar_queries
             
-            # Step 2: Get relevant error patterns to avoid
-            self.logger.info("Step 2: Retrieving error patterns to avoid")
-            error_patterns = self.query_memory.get_error_patterns(
-                kg_id=str(state.kg_id),
-                limit=3
-            )
+            if similar_queries:
+                self.logger.info(f"Found {len(similar_queries)} similar past queries")
+            
+            
+            # Step 2: Get SQL lessons from state
+            self.logger.info("Step 2: Loading SQL lessons from error summary")
+            sql_lessons = state.sql_lessons or ""
+            
+            if sql_lessons:
+                self.logger.info(f"Using SQL lessons from error summary")
+            else:
+                self.logger.info("No SQL lessons available")
             
             # Step 3: Generate SQL with LLM
             self.logger.info("Step 3: Generating SQL query")
             sql_result = self._generate_sql_with_llm(
                 state=state,
                 similar_queries=similar_queries,
-                error_patterns=error_patterns
+                sql_lessons=sql_lessons
             )
             
             state.generated_sql = sql_result["sql_query"]
@@ -83,7 +89,7 @@ class SQLGeneratorAgent(BaseAgent):
                 
                 # Attempt self-correction
                 self.logger.info("Attempting self-correction...")
-                state = self._self_correct_sql(state, validation_result)
+                state = self._self_correct_sql(state, validation_result, sql_lessons)
 
             else:
                 self.logger.info("SQL validation passed")
@@ -106,9 +112,7 @@ class SQLGeneratorAgent(BaseAgent):
         self,
         state: AgentState,
         similar_queries: list,
-        error_patterns: list
-        
-        
+        sql_lessons: str
     ) -> Dict[str, Any]:
         """Generate SQL using LLM with context"""
         
@@ -118,11 +122,17 @@ class SQLGeneratorAgent(BaseAgent):
         # Format few-shot examples
         examples_text = self.query_memory.format_examples_for_prompt(similar_queries)
         
-        # Format error patterns to avoid
-        errors_to_avoid = self._format_error_patterns(error_patterns)
-        
         # Format table schemas
         schema_text = self._format_table_schemas(state.table_contexts, state.final_tables)
+        
+        lessons_section = ""
+        if sql_lessons and sql_lessons.strip():
+            lessons_section = f"""
+                IMPORTANT - Learned Rules from Past Mistakes:
+                {sql_lessons}
+
+                Apply these rules when generating SQL. These rules were derived from previous errors and their successful fixes.
+            """
         
         # Build prompt
         prompt = f"""You are a PostgreSQL expert. Generate a SQL query to answer the user's question.
@@ -135,7 +145,7 @@ class SQLGeneratorAgent(BaseAgent):
                     Similar Past Queries (for reference):
                     {examples_text}
 
-                    {errors_to_avoid}
+                    {lessons_section}
 
                     Instructions:
                     1. Think step-by-step using chain-of-thought reasoning
@@ -164,7 +174,7 @@ class SQLGeneratorAgent(BaseAgent):
                     {"role": "user", "content": prompt}
                 ],
                 response_model=SQLGenerationOutput,
-                model="gpt-4o",  # Use GPT-4 for better SQL generation
+                model="gpt-4o", 
                 temperature=0.0
             )
             
@@ -182,11 +192,18 @@ class SQLGeneratorAgent(BaseAgent):
             self.logger.error(f"LLM SQL generation failed: {e}")
             raise
         
-    def _self_correct_sql(self, state: AgentState, validation_result: Dict) -> AgentState:
+    def _self_correct_sql(self, state: AgentState, validation_result: Dict, sql_lessons: str) -> AgentState:
         """Attempt to self-correct SQL based on validation errors"""
         self.logger.info("Self-correcting SQL...")
         
         errors_text = "\n".join(validation_result["errors"])
+        
+        lessons_section = ""
+        if sql_lessons and sql_lessons.strip():
+            lessons_section = f"""
+                Learned Rules to Apply:
+                {sql_lessons}
+            """
         
         correction_prompt = f"""The SQL query has validation errors. Please fix them.
 
@@ -199,6 +216,8 @@ class SQLGeneratorAgent(BaseAgent):
                     Tables and Schema:
                     {self._format_table_schemas(state.table_contexts, state.final_tables)}
 
+                    {lessons_section}
+                    
                     Generate a corrected SQL query that fixes these errors.
             """
 
@@ -287,20 +306,6 @@ class SQLGeneratorAgent(BaseAgent):
                 lines.append("Relationships:")
                 for rel in context["relationships"]:
                     lines.append(f"  - {rel['join_condition']} ({rel['type']})")
-        
-        return "\n".join(lines)
-    
-    def _format_error_patterns(self, error_patterns: list) -> str:
-        """Format error patterns to avoid"""
-        if not error_patterns:
-            return ""
-        
-        lines = ["Common Errors to Avoid:"]
-        for pattern in error_patterns:
-            lines.append(
-                f"- {pattern['error_category']}: {pattern['error_pattern']} "
-                f"(Fix: {pattern['fix_applied']})"
-            )
         
         return "\n".join(lines)
     

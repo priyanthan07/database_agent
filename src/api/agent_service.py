@@ -6,6 +6,7 @@ from uuid import UUID
 from ..kg.manager.kg_manager import KGManager
 from ..openai_client import OpenAIClient
 from ..memory.query_memory_repository import QueryMemoryRepository
+from ..memory.error_summary_manager import ErrorSummaryManager
 from ..orchestration.agent_state import AgentState
 from ..orchestration.workflow_graph import AgentWorkflow
 from ..agents.tools.clarification_tool import ClarificationTool
@@ -32,11 +33,17 @@ class AgentService:
         
         # Initialize components
         self.memory_repository = QueryMemoryRepository(kg_conn)
+        
+        # Initialize error summary manager
+        self.error_summary_manager = ErrorSummaryManager(kg_conn, openai_client)
+        
+        # Initialize workflow
         self.workflow = AgentWorkflow(
             kg_manager=kg_manager,
             openai_client=openai_client,
             source_db_conn=source_db_conn,
-            memory_repository=self.memory_repository
+            memory_repository=self.memory_repository,
+            error_summary_manager=self.error_summary_manager
         )
         self.clarification_tool = ClarificationTool(openai_client)
         
@@ -88,12 +95,27 @@ class AgentService:
             # Apply clarifications to query if provided
             refined_query = self._apply_clarifications(user_query, clarifications)
             
+            logger.info("Loading error summary for KG...")
+            error_summary = self.error_summary_manager.get_summary(kg_id)
+            
+            schema_lessons = error_summary.get("schema_lessons", "") if error_summary else ""
+            sql_lessons = error_summary.get("sql_lessons", "") if error_summary else ""
+            
+            if schema_lessons or sql_lessons:
+                lesson_count = error_summary.get("lesson_count", 0)
+                word_count = error_summary.get("word_count", 0)
+                logger.info(f"Loaded error summary: {lesson_count} lessons, {word_count} words")
+            else:
+                logger.info("No error lessons available for this KG")
+            
             # Create initial state
             initial_state = AgentState(
                 kg_id=kg_id,
                 user_query=user_query,
                 refined_query=refined_query if refined_query != user_query else None,
-                clarifications_provided=clarifications or {}
+                clarifications_provided=clarifications or {},
+                schema_lessons=schema_lessons,
+                sql_lessons=sql_lessons
             )
             
             # Execute workflow
@@ -168,6 +190,7 @@ class AgentService:
                     "tables_used": state.final_tables,
                     "confidence_score": state.confidence_score,
                     "iterations": state.retry_count + 1,
+                    "is_retry_success": state.is_retry_success,
                     "timing": {
                         "schema_retrieval_ms": state.schema_retrieval_time_ms,
                         "sql_generation_ms": state.sql_generation_time_ms,
@@ -191,4 +214,28 @@ class AgentService:
                     }
                 }
             }
+    def submit_feedback(
+        self,
+        query_log_id: UUID,
+        feedback: str,
+        rating: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+            Submit user feedback for a query result.
+        """
+        try:
+            success = self.memory_repository.update_query_feedback(
+                query_log_id=query_log_id,
+                feedback=feedback,
+                rating=rating
+            )
             
+            if success:
+                logger.info(f"Feedback submitted for query {query_log_id}")
+                return {"success": True}
+            else:
+                return {"success": False, "error": "Failed to update feedback"}
+                
+        except Exception as e:
+            logger.error(f"Failed to submit feedback: {e}")
+            return {"success": False, "error": str(e)}
