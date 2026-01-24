@@ -108,7 +108,6 @@ class ExecutorValidatorAgent(BaseAgent):
                     
                     # Store failed query for learning
                     self._store_query_log(state, success=False)
-                    self._store_error_pattern(state)
                     
                 else:
                     # Route to appropriate agent for correction                    
@@ -182,6 +181,10 @@ class ExecutorValidatorAgent(BaseAgent):
         except psycopg2.Error as e:
             result["error"] = str(e)
             self.logger.error(f"PostgreSQL error: {e}")
+            try:
+                self.source_db_conn.rollback()
+            except:
+                pass
             
         except Exception as e:
             result["error"] = str(e)

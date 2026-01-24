@@ -6,9 +6,6 @@ from pydantic import BaseModel
 
 from ..models import Column, Table
 
-class PIIDetectionOutput(BaseModel):
-    is_pii: bool
-    reasoning: str
 
 logger = logging.getLogger(__name__)
 

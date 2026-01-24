@@ -240,7 +240,7 @@ class QueryMemoryRepository:
             ON CONFLICT (kg_id, error_pattern)
             DO UPDATE SET
                 occurrence_count = query_error_patterns.occurrence_count + 1,
-                last_seen = CURRENT_TIMESTAMP
+                last_seen = CURRENT_TIMESTAMP,
                 example_error_message = EXCLUDED.example_error_message
             RETURNING pattern_id
         """

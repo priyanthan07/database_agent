@@ -27,7 +27,7 @@ class KGBuilder:
         self.settings = settings
         
         # Initialize components
-        self.schema_extractor = SchemaExtractor(source_conn, openai_client)
+        self.schema_extractor = SchemaExtractor(source_conn)
         self.description_generator = DescriptionGenerator(openai_client)
         self.embedding_generator = EmbeddingGenerator(openai_client)
         self.kg_repository = KGRepository(kg_conn)
