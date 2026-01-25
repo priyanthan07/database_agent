@@ -75,8 +75,11 @@ class ExecutorValidatorAgent(BaseAgent):
                     # Extract and store lesson from successful retry
                     self._extract_and_store_lesson(state)
                 
-                # Store successful query in memory
-                self._store_query_log(state, success=True)
+                # Store successful query in memory and capture query_log_id
+                query_log_id = self._store_query_log(state, success=True)
+                if query_log_id:
+                    state.query_log_id = query_log_id
+                    self.logger.info(f"Query log ID stored in state: {query_log_id}")
                 
             else:
                 self.logger.error(f" SQL execution failed: {execution_result['error']}")
@@ -115,8 +118,10 @@ class ExecutorValidatorAgent(BaseAgent):
                     self.logger.warning(f"Max retries ({state.max_retries}) reached")
                     state.route_to_agent = "complete"
                     
-                    # Store failed query for learning
-                    self._store_query_log(state, success=False)
+                    # Store failed query for learning and capture query_log_id
+                    query_log_id = self._store_query_log(state, success=False)
+                    if query_log_id:
+                        state.query_log_id = query_log_id
                     
                 else:
                     # Route to appropriate agent for correction                    
@@ -155,7 +160,9 @@ class ExecutorValidatorAgent(BaseAgent):
             self.logger.error(f"Execution failed: {e}", exc_info=True)
             self.record_error(state, "execution_error", str(e))
             state.route_to_agent = "complete"
-            self._store_query_log(state, success=False)
+            query_log_id = self._store_query_log(state, success=False)
+            if query_log_id:
+                state.query_log_id = query_log_id
             self.log_end(state, success=False)
             return state
     
@@ -263,15 +270,18 @@ class ExecutorValidatorAgent(BaseAgent):
             }
             
             # Store in repository
-            success_result = self.memory_repository.insert_query_log(query_log)
+            query_log_id  = self.memory_repository.insert_query_log(query_log)
             
-            if success_result:
+            if query_log_id :
                 self.logger.info(" Query log stored successfully in kg_query_log table")
+                return query_log_id
             else:
                 self.logger.error(" Failed to store query log")
+                return None
             
         except Exception as e:
             self.logger.error(f"Failed to store query log: {e}")
+            return None
             
     def _store_error_pattern(self, state: AgentState, classification: Dict[str, Any]):
         """Store error pattern for future learning"""

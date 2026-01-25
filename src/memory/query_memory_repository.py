@@ -71,13 +71,60 @@ class QueryMemoryRepository:
                     embedding_str
                 ))
                 
+                result = cur.fetchone()
                 self.conn.commit()
-                logger.info("Query log inserted successfully")
-                return True
+                
+                if result:
+                    returned_id = str(result[0])
+                    logger.info(f"Query log inserted successfully with id: {returned_id}")
+                    return returned_id
+                return None
                 
         except Exception as e:
             self.conn.rollback()
             logger.error(f"Failed to insert query log: {e}")
+            return None
+        
+    def update_query_feedback(
+        self,
+        query_log_id: UUID,
+        feedback: str,
+        rating: Optional[int] = None
+    ) -> bool:
+        """
+            Update user feedback for a specific query log entry.
+        """
+        logger.info(f"Updating feedback for query: {query_log_id}")
+        
+        try:
+            self.conn.rollback()
+        except:
+            pass
+        
+        query = """
+            UPDATE kg_query_log
+            SET user_feedback = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE query_id = %s
+            RETURNING query_id
+        """
+        
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query, (feedback, str(query_log_id)))
+                result = cur.fetchone()
+                self.conn.commit()
+                
+                if result:
+                    logger.info(f"Feedback updated successfully for query {query_log_id}")
+                    return True
+                else:
+                    logger.warning(f"No query found with id {query_log_id}")
+                    return False
+                
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Failed to update query feedback: {e}")
             return False
     
     def search_similar_queries(

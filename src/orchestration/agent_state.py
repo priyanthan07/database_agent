@@ -51,6 +51,8 @@ class AgentState(BaseModel):
     error_category: Optional[str] = None       # syntax_error, column_not_found, etc.
     correction_summary: Optional[str] = None
     
+    query_log_id: Optional[str] = None
+    
     # Retry & Error Handling
     retry_count: int = 0
     max_retries: int = 3

@@ -51,28 +51,9 @@ st.set_page_config(
 
 
 def load_custom_css():
-    """Load production-quality minimal CSS"""
+    """Load production-quality minimal CSS - dark theme compatible"""
     st.markdown("""
     <style>
-    /* Root variables for consistent theming */
-    :root {
-        --primary: #2563eb;
-        --primary-hover: #1d4ed8;
-        --success: #059669;
-        --warning: #d97706;
-        --error: #dc2626;
-        --gray-50: #f9fafb;
-        --gray-100: #f3f4f6;
-        --gray-200: #e5e7eb;
-        --gray-300: #d1d5db;
-        --gray-400: #9ca3af;
-        --gray-500: #6b7280;
-        --gray-600: #4b5563;
-        --gray-700: #374151;
-        --gray-800: #1f2937;
-        --gray-900: #111827;
-    }
-    
     /* Clean main container */
     .main .block-container {
         padding: 1.5rem 2rem;
@@ -81,26 +62,16 @@ def load_custom_css():
     
     /* Sidebar - clean dark theme */
     [data-testid="stSidebar"] {
-        background: var(--gray-900);
+        background: #111827;
     }
     
-    [data-testid="stSidebar"] * {
-        color: var(--gray-300) !important;
-    }
-    
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        color: white !important;
-    }
-    
-    /* Header - subtle gradient */
+    /* Header */
     .app-header {
-        background: var(--gray-800);
+        background: #1f2937;
         padding: 1.25rem 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        border-left: 4px solid var(--primary);
+        border-left: 4px solid #2563eb;
     }
     
     .app-header h1 {
@@ -111,32 +82,24 @@ def load_custom_css():
     }
     
     .app-header p {
-        color: var(--gray-400);
+        color: #9ca3af;
         margin: 0.25rem 0 0 0;
         font-size: 0.875rem;
     }
     
-    /* Cards */
+    /* Cards - dark theme compatible */
     .card {
-        background: white;
+        background: rgba(31, 41, 55, 0.5);
         border-radius: 8px;
         padding: 1.25rem;
-        border: 1px solid var(--gray-200);
+        border: 1px solid rgba(75, 85, 99, 0.5);
         margin-bottom: 1rem;
     }
     
-    .card-dark {
-        background: var(--gray-800);
-        border-radius: 8px;
-        padding: 1.25rem;
-        color: white;
-        margin-bottom: 1rem;
-    }
-    
-    /* Chat messages */
+    /* Chat messages - dark theme compatible */
     .chat-user {
-        background: var(--gray-100);
-        border: 1px solid var(--gray-200);
+        background: rgba(37, 99, 235, 0.15);
+        border: 1px solid rgba(37, 99, 235, 0.3);
         padding: 1rem 1.25rem;
         border-radius: 8px;
         margin: 0.75rem 0;
@@ -145,14 +108,14 @@ def load_custom_css():
     
     .chat-user .label {
         font-size: 0.75rem;
-        color: var(--gray-500);
+        color: #9ca3af;
         margin-bottom: 0.25rem;
         font-weight: 500;
     }
     
     .chat-assistant {
-        background: white;
-        border: 1px solid var(--gray-200);
+        background: rgba(31, 41, 55, 0.5);
+        border: 1px solid rgba(75, 85, 99, 0.5);
         padding: 1rem 1.25rem;
         border-radius: 8px;
         margin: 0.75rem 0;
@@ -161,65 +124,24 @@ def load_custom_css():
     
     .chat-assistant .label {
         font-size: 0.75rem;
-        color: var(--primary);
+        color: #60a5fa;
         margin-bottom: 0.25rem;
         font-weight: 500;
     }
     
-    /* Clarification card */
+    /* Clarification card - dark theme */
     .clarification-card {
-        background: #fffbeb;
-        border: 1px solid #fcd34d;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.3);
         border-radius: 8px;
         padding: 1.25rem;
         margin: 1rem 0;
     }
     
     .clarification-card h4 {
-        color: var(--gray-800);
+        color: #fbbf24;
         margin: 0 0 0.75rem 0;
         font-size: 0.95rem;
-    }
-    
-    /* SQL code block */
-    .sql-block {
-        background: var(--gray-900);
-        color: #e5e7eb;
-        padding: 1rem;
-        border-radius: 6px;
-        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-        font-size: 0.8rem;
-        overflow-x: auto;
-        margin: 0.5rem 0;
-    }
-    
-    /* Metrics */
-    .metric-row {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-    
-    .metric-item {
-        background: var(--gray-50);
-        border: 1px solid var(--gray-200);
-        border-radius: 6px;
-        padding: 1rem;
-        text-align: center;
-        flex: 1;
-    }
-    
-    .metric-value {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: var(--gray-800);
-    }
-    
-    .metric-label {
-        font-size: 0.75rem;
-        color: var(--gray-500);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
     
     /* Status badges */
@@ -232,33 +154,18 @@ def load_custom_css():
     }
     
     .badge-success {
-        background: #d1fae5;
-        color: #065f46;
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
     }
     
     .badge-error {
-        background: #fee2e2;
-        color: #991b1b;
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
     }
     
     .badge-warning {
-        background: #fef3c7;
-        color: #92400e;
-    }
-    
-    /* Feedback section */
-    .feedback-section {
-        background: var(--gray-50);
-        border: 1px solid var(--gray-200);
-        border-radius: 6px;
-        padding: 0.75rem 1rem;
-        margin-top: 0.75rem;
-    }
-    
-    .feedback-buttons {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
     }
     
     /* Hide Streamlit branding */
@@ -279,30 +186,10 @@ def load_custom_css():
         border-radius: 6px;
     }
     
-    /* Data tables */
-    .stDataFrame {
-        border-radius: 6px;
-        overflow: hidden;
-    }
-    
-    /* Expander */
-    .streamlit-expanderHeader {
-        font-weight: 500;
-        color: var(--gray-700);
-    }
-    
     /* Sidebar section divider */
     .sidebar-divider {
-        border-top: 1px solid var(--gray-700);
+        border-top: 1px solid #374151;
         margin: 1rem 0;
-    }
-    
-    /* Graph container */
-    .graph-container {
-        background: white;
-        border: 1px solid var(--gray-200);
-        border-radius: 8px;
-        overflow: hidden;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -311,36 +198,23 @@ def load_custom_css():
 def init_session_state():
     """Initialize session state variables"""
     defaults = {
-        # Connection state
         "connected": False,
         "kg_conn": None,
         "source_conn": None,
         "settings": None,
-        
-        # KG state
         "kg_loaded": False,
         "kg_id": None,
         "kg_data": None,
         "kg_info": None,
-        
-        # Agent state
         "agent_service": None,
-        
-        # Chat state
         "messages": [],
         "processing": False,
-        "pending_clarification": None,  # Stores clarification request
-        "selected_clarification": None,  # User's selected option
-        
-        # UI state
+        "pending_clarification": None,
+        "selected_clarification": None,
         "active_section": "database",
         "show_sql": True,
         "show_explanation": True,
-        
-        # Progress
         "current_progress": None,
-        
-        # Credentials
         "db_credentials": {
             "host": "localhost",
             "port": 5432,
@@ -386,7 +260,6 @@ def render_sidebar():
         </div>
         """, unsafe_allow_html=True)
         
-        # Connection Status
         st.markdown("**Status**")
         col1, col2 = st.columns(2)
         with col1:
@@ -402,7 +275,6 @@ def render_sidebar():
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Navigation
         st.markdown("**Navigation**")
         
         sections = [
@@ -414,28 +286,21 @@ def render_sidebar():
         
         for key, label in sections:
             is_active = st.session_state.active_section == key
-            if st.button(
-                label,
-                key=f"nav_{key}",
-                use_container_width=True,
-                type="primary" if is_active else "secondary"
-            ):
+            if st.button(label, key=f"nav_{key}", use_container_width=True,
+                        type="primary" if is_active else "secondary"):
                 st.session_state.active_section = key
                 st.rerun()
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # KG Info
         if st.session_state.kg_loaded and st.session_state.kg_info:
             st.markdown("**Knowledge Graph**")
             info = st.session_state.kg_info
             st.caption(f"Database: {info.get('db_name', 'N/A')}")
             st.caption(f"Tables: {info.get('tables_count', 0)}")
             st.caption(f"Relations: {info.get('relationships_count', 0)}")
-            
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Settings
         st.markdown("**Display**")
         st.session_state.show_sql = st.checkbox("Show SQL", value=st.session_state.show_sql)
         st.session_state.show_explanation = st.checkbox("Show Explanation", value=st.session_state.show_explanation)
@@ -533,15 +398,14 @@ def render_database_section():
             
             if kgs:
                 for kg in kgs[:5]:
-                    with st.container():
-                        st.markdown(f"""
-                        <div class="card">
-                            <strong>{kg.db_name}</strong><br>
-                            <small style="color: #6b7280;">
-                                {kg.db_host}:{kg.db_port} • {kg.tables_count} tables
-                            </small>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="card">
+                        <strong>{kg.db_name}</strong><br>
+                        <small style="color: #6b7280;">
+                            {kg.db_host}:{kg.db_port} • {kg.tables_count} tables
+                        </small>
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.info("No existing Knowledge Graphs")
             
@@ -559,19 +423,16 @@ def render_chat_section():
     
     st.subheader("Chat")
     
-    # Chat messages container
     chat_container = st.container()
     
     with chat_container:
         for i, msg in enumerate(st.session_state.messages):
             render_chat_message(msg, i)
     
-    # Pending clarification handling
     if st.session_state.pending_clarification:
         render_clarification_ui()
-        return  # Don't show input while clarification is pending
+        return
     
-    # Chat input
     st.divider()
     
     col1, col2 = st.columns([6, 1])
@@ -585,7 +446,6 @@ def render_chat_section():
             st.session_state.pending_clarification = None
             st.rerun()
     
-    # Process new query
     if user_query and not st.session_state.processing:
         process_user_query(user_query)
 
@@ -603,17 +463,13 @@ def render_chat_message(msg: Dict, index: int):
     
     elif msg["role"] == "assistant":
         with st.container():
-            # Main message
             if msg.get("success"):
-                icon = "✓"
                 status_class = "badge-success"
                 status_text = "Success"
             elif msg.get("needs_clarification"):
-                icon = "?"
                 status_class = "badge-warning"
                 status_text = "Clarification Needed"
             else:
-                icon = "✗"
                 status_class = "badge-error"
                 status_text = "Error"
             
@@ -624,28 +480,24 @@ def render_chat_message(msg: Dict, index: int):
             </div>
             """, unsafe_allow_html=True)
             
-            # SQL (if available and enabled)
             if msg.get("sql") and st.session_state.show_sql:
                 with st.expander("SQL Query", expanded=False):
                     st.code(msg["sql"], language="sql")
             
-            # Data results
             if msg.get("data") and len(msg["data"]) > 0:
                 with st.expander(f"Results ({len(msg['data'])} rows)", expanded=True):
                     df = pd.DataFrame(msg["data"])
                     st.dataframe(df, use_container_width=True, hide_index=True)
             
-            # Explanation
             if msg.get("explanation") and st.session_state.show_explanation:
                 with st.expander("Explanation", expanded=False):
                     st.markdown(msg["explanation"])
             
-            # Error details
             if msg.get("error") and not msg.get("needs_clarification"):
                 with st.expander("Error Details", expanded=False):
                     st.error(msg["error"])
             
-            # Feedback section (only for completed queries)
+            # Feedback section - only for completed queries
             if msg.get("success") or (msg.get("error") and not msg.get("needs_clarification")):
                 render_feedback_ui(index, msg)
 
@@ -660,15 +512,12 @@ def render_clarification_ui():
     </div>
     """, unsafe_allow_html=True)
     
-    # Show the question
     st.markdown(f"**{clarification['question']}**")
     
-    # Show reasoning if available
     if clarification.get("reasoning"):
         with st.expander("Why this question?", expanded=False):
             st.caption(clarification["reasoning"])
     
-    # MCQ Options
     options = clarification.get("options", [])
     
     if options:
@@ -683,12 +532,10 @@ def render_clarification_ui():
         
         with col1:
             if st.button("Submit", type="primary", use_container_width=True):
-                # Process with clarification
                 process_with_clarification(selected)
         
         with col2:
             if st.button("Skip", use_container_width=True):
-                # Process without clarification (force execute)
                 st.session_state.pending_clarification = None
                 original_query = st.session_state.messages[-1]["content"] if st.session_state.messages else ""
                 if original_query:
@@ -699,61 +546,47 @@ def render_clarification_ui():
 def render_feedback_ui(msg_index: int, msg: Dict):
     """Render feedback UI for a message"""
     
-    feedback_key = f"feedback_{msg_index}"
-    rating_key = f"rating_{msg_index}"
     submitted_key = f"feedback_submitted_{msg_index}"
     
-    # Check if already submitted
     if st.session_state.get(submitted_key):
         st.caption("✓ Feedback submitted")
         return
     
-    with st.container():
-        st.markdown('<div class="feedback-section">', unsafe_allow_html=True)
-        
-        col1, col2, col3, col4 = st.columns([1, 1, 1, 3])
-        
-        with col1:
-            thumbs_up = st.button("👍", key=f"thumbs_up_{msg_index}", help="Helpful")
-        
-        with col2:
-            thumbs_down = st.button("👎", key=f"thumbs_down_{msg_index}", help="Not helpful")
-        
-        with col3:
-            show_feedback = st.button("💬", key=f"show_feedback_{msg_index}", help="Add comment")
-        
-        # Handle quick feedback
-        if thumbs_up:
-            submit_query_feedback(msg_index, "Helpful", 5)
-        
-        if thumbs_down:
-            submit_query_feedback(msg_index, "Not helpful", 1)
-        
-        # Show detailed feedback form
-        if show_feedback or st.session_state.get(f"show_feedback_form_{msg_index}"):
+    # Get query_log_id from message metadata
+    query_log_id = msg.get("metadata", {}).get("query_log_id")
+    
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 5])
+    
+    with col1:
+        if st.button("👍", key=f"thumbs_up_{msg_index}", help="Helpful"):
+            submit_query_feedback(msg_index, query_log_id, "Helpful", 5)
+    
+    with col2:
+        if st.button("👎", key=f"thumbs_down_{msg_index}", help="Not helpful"):
+            submit_query_feedback(msg_index, query_log_id, "Not helpful", 1)
+    
+    with col3:
+        if st.button("💬", key=f"show_feedback_{msg_index}", help="Add comment"):
             st.session_state[f"show_feedback_form_{msg_index}"] = True
-            
-            feedback_text = st.text_area(
-                "Your feedback",
-                key=feedback_key,
-                placeholder="What could be improved?",
-                height=80
-            )
-            
-            rating = st.slider("Rating", 1, 5, 3, key=rating_key)
-            
-            if st.button("Submit Feedback", key=f"submit_fb_{msg_index}"):
-                submit_query_feedback(msg_index, feedback_text, rating)
+            st.rerun()
+    
+    if st.session_state.get(f"show_feedback_form_{msg_index}"):
+        feedback_text = st.text_area(
+            "Your feedback",
+            key=f"feedback_text_{msg_index}",
+            placeholder="What could be improved?",
+            height=80
+        )
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        rating = st.slider("Rating", 1, 5, 3, key=f"rating_{msg_index}")
+        
+        if st.button("Submit Feedback", key=f"submit_fb_{msg_index}"):
+            submit_query_feedback(msg_index, query_log_id, feedback_text, rating)
 
 
-def submit_query_feedback(msg_index: int, feedback_text: str, rating: int):
-    """Submit feedback for a query"""
+def submit_query_feedback(msg_index: int, query_log_id: Optional[str], feedback_text: str, rating: int):
+    """Submit feedback for a query to the backend"""
     try:
-        msg = st.session_state.messages[msg_index]
-        query_log_id = msg.get("metadata", {}).get("query_log_id")
-        
         if query_log_id and st.session_state.agent_service:
             result = submit_feedback(
                 agent_service=st.session_state.agent_service,
@@ -764,14 +597,16 @@ def submit_query_feedback(msg_index: int, feedback_text: str, rating: int):
             
             if result.success:
                 st.session_state[f"feedback_submitted_{msg_index}"] = True
-                st.toast("Feedback submitted!")
+                st.toast(f"Feedback saved for query {query_log_id[:8]}...")
             else:
-                st.toast("Feedback saved locally")
+                st.toast(f"Failed to save feedback: {result.error}")
                 st.session_state[f"feedback_submitted_{msg_index}"] = True
         else:
-            # No query log ID, just mark as submitted
             st.session_state[f"feedback_submitted_{msg_index}"] = True
-            st.toast("Thank you for your feedback!")
+            if not query_log_id:
+                st.toast("Feedback noted (no query ID available)")
+            else:
+                st.toast("Thank you for your feedback!")
         
         st.rerun()
         
@@ -783,7 +618,6 @@ def process_user_query(user_query: str, force: bool = False, clarifications: Dic
     """Process a user query through the agent"""
     st.session_state.processing = True
     
-    # Add user message (only if not a clarification response)
     if not clarifications:
         st.session_state.messages.append({
             "role": "user",
@@ -800,7 +634,6 @@ def process_user_query(user_query: str, force: bool = False, clarifications: Dic
                 progress_callback=progress_callback
             )
             
-            # Build response message
             response_msg = {
                 "role": "assistant",
                 "content": "",
@@ -810,7 +643,7 @@ def process_user_query(user_query: str, force: bool = False, clarifications: Dic
                 "error": result.error,
                 "success": result.success,
                 "needs_clarification": result.needs_clarification,
-                "metadata": result.metadata
+                "metadata": result.metadata  # Contains query_log_id
             }
             
             if result.success:
@@ -819,7 +652,6 @@ def process_user_query(user_query: str, force: bool = False, clarifications: Dic
                 st.session_state.pending_clarification = None
                 
             elif result.needs_clarification and not force:
-                # Store clarification request
                 clarification_data = result.clarification_request
                 st.session_state.pending_clarification = {
                     "question": clarification_data.get("question", "Please clarify your query"),
@@ -841,7 +673,8 @@ def process_user_query(user_query: str, force: bool = False, clarifications: Dic
                 "role": "assistant",
                 "content": f"An error occurred: {str(e)}",
                 "error": str(e),
-                "success": False
+                "success": False,
+                "metadata": {}
             })
             st.session_state.pending_clarification = None
     
@@ -856,19 +689,15 @@ def process_with_clarification(selected_option: str):
     original_query = clarification.get("original_query", "")
     question = clarification.get("question", "clarification")
     
-    # Build clarifications dict
     clarifications = {question: selected_option}
     
-    # Clear pending clarification
     st.session_state.pending_clarification = None
     
-    # Add user's selection as a message
     st.session_state.messages.append({
         "role": "user",
         "content": f"Selected: {selected_option}"
     })
     
-    # Process with clarification
     process_user_query(original_query, clarifications=clarifications)
 
 
@@ -907,7 +736,6 @@ def render_graph_visualization(kg_data: Dict[str, Any]):
     tables = kg_data.get("tables", {})
     relationships = kg_data.get("relationships", [])
     
-    # Stats
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Tables", len(tables))
@@ -919,11 +747,9 @@ def render_graph_visualization(kg_data: Dict[str, Any]):
     
     st.divider()
     
-    # Build nodes and edges
     nodes = []
     edges = []
     
-    # Simple color scheme
     colors = ["#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2"]
     domain_colors = {}
     
@@ -946,11 +772,9 @@ def render_graph_visualization(kg_data: Dict[str, Any]):
             "label": f"{rel.get('from_column', '')} → {rel.get('to_column', '')}"
         })
     
-    # Render network
     network_html = create_network_html(nodes, edges)
     st.components.v1.html(network_html, height=450, scrolling=False)
     
-    # Legend
     if domain_colors:
         st.markdown("**Domains**")
         cols = st.columns(min(len(domain_colors), 4))
@@ -974,9 +798,9 @@ def create_network_html(nodes: List[Dict], edges: List[Dict]) -> str:
             #network {{
                 width: 100%;
                 height: 430px;
-                border: 1px solid #e5e7eb;
+                border: 1px solid #374151;
                 border-radius: 8px;
-                background: #fafafa;
+                background: #1f2937;
             }}
         </style>
     </head>
@@ -989,7 +813,7 @@ def create_network_html(nodes: List[Dict], edges: List[Dict]) -> str:
                 color: {{
                     background: n.color,
                     border: n.color,
-                    highlight: {{ background: n.color, border: '#1f2937' }}
+                    highlight: {{ background: n.color, border: '#fff' }}
                 }},
                 font: {{ color: '#fff', size: 11 }},
                 shape: 'box',
@@ -1001,8 +825,8 @@ def create_network_html(nodes: List[Dict], edges: List[Dict]) -> str:
                 to: e.to,
                 label: e.label,
                 arrows: 'to',
-                color: {{ color: '#9ca3af', highlight: '#2563eb' }},
-                font: {{ size: 9, color: '#6b7280' }},
+                color: {{ color: '#6b7280', highlight: '#2563eb' }},
+                font: {{ size: 9, color: '#9ca3af' }},
                 smooth: {{ type: 'cubicBezier' }}
             }})));
             
@@ -1106,6 +930,10 @@ def render_history_section():
     for i, (q, r) in enumerate(zip(queries, responses)):
         with st.expander(f"Query {i+1}: {q['content'][:40]}...", expanded=False):
             st.markdown(f"**Query:** {q['content']}")
+            
+            query_log_id = r.get("metadata", {}).get("query_log_id")
+            if query_log_id:
+                st.caption(f"ID: {query_log_id[:8]}...")
             
             if r.get("sql"):
                 st.code(r["sql"], language="sql")
