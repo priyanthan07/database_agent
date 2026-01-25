@@ -334,13 +334,13 @@ def main():
     
     try:
         # Connect to source database
-        logger.info(f"Connecting to source database: {settings.ECOMMERCE_DATABASE}")
+        logger.info(f"Connecting to source database")
         source_conn = psycopg2.connect(
-            host=settings.ECOMMERCE_HOST,
-            port=settings.ECOMMERCE_PORT,
-            database=settings.ECOMMERCE_DATABASE,
-            user=settings.ECOMMERCE_USER,
-            password=settings.ECOMMERCE_PASSWORD
+            host="localhost",
+            port="5432",
+            database="ecommerce_db",
+            user="postgres",
+            password="admin"
         )
         
         # Connect to KG storage database
@@ -365,7 +365,7 @@ def main():
         kg_manager = KGManager(kg_conn, settings.CHROMA_PERSIST_DIR)
         
         # Get KG by source database hash
-        hash_str = f"{settings.ECOMMERCE_HOST}:{settings.ECOMMERCE_PORT}:{settings.ECOMMERCE_DATABASE}"
+        hash_str = f"{"localhost"}:{"5432"}:{"ecommerce_db"}"
         source_db_hash = hashlib.sha256(hash_str.encode()).hexdigest()
         
         logger.info("Loading Knowledge Graph...")

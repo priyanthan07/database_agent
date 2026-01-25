@@ -20,6 +20,7 @@ from src.kg.builders.kg_builder import KGBuilder
 from src.kg.manager.kg_manager import KGManager
 from src.kg.storage.kg_repository import KGRepository
 from src.api.agent_service import AgentService
+from src.kg.storage.vector_store import VectorStore
 
 
 LOG_DIR = Path(__file__).parent / "logs"
@@ -173,10 +174,6 @@ def _default_progress_callback(update: ProgressUpdate) -> None:
     """Default progress callback that logs to logger"""
     logger.info(f"[{update.stage}] {update.message} ({update.progress*100:.0f}%)")
 
-
-# =============================================================================
-# CONNECTION MANAGEMENT
-# =============================================================================
 
 def get_kg_connection() -> ConnectionResult:
     """
@@ -466,6 +463,24 @@ def connect_or_build_kg(
         )
         
         if load_result.success:
+            
+            callback(ProgressUpdate(
+                stage="loading",
+                message="Verifying vector embeddings...",
+                progress=0.8
+            ))
+            
+            vector_ready = verify_and_fix_vector_store(
+                kg_id=existing_kg_id,
+                kg_conn=kg_conn,
+                settings=settings,
+                progress_callback=callback
+            )
+            
+            if not vector_ready:
+                logger.warning("Vector store verification failed, but KG loaded successfully")
+
+
             callback(ProgressUpdate(
                 stage="complete",
                 message="Knowledge Graph loaded successfully!",
@@ -473,20 +488,14 @@ def connect_or_build_kg(
                 details={
                     "tables": load_result.tables_count,
                     "relationships": load_result.relationships_count,
-                    "status": "loaded existing"
+                    "status": "loaded existing",
+                    "vector_store": "ready" if vector_ready else "not ready"
                 }
             ))
             
             # Return with connection info attached
-            return KGLoadResult(
-                success=True,
-                kg_id=load_result.kg_id,
-                db_name=load_result.db_name,
-                tables_count=load_result.tables_count,
-                relationships_count=load_result.relationships_count,
-                columns_count=load_result.columns_count,
-                kg_data=load_result.kg_data
-            )
+            return load_result
+        
         else:
             # Failed to load, try building new
             logger.warning(f"Failed to load existing KG, will build new: {load_result.error}")
@@ -524,7 +533,43 @@ def connect_or_build_kg(
         close_connections(source_conn, kg_conn)
         return KGLoadResult(success=False, error=build_result.error)
 
-
+def verify_and_fix_vector_store(
+    kg_id: UUID,
+    kg_conn: Any,
+    settings: Settings,
+    progress_callback: Optional[ProgressCallback] = None
+) -> bool:
+    """
+    Verify vector store has embeddings, load from PostgreSQL if missing.
+    
+    Returns:
+        True if vector store is ready, False otherwise
+    """
+    callback = progress_callback or _default_progress_callback
+    
+    try:
+        
+        vector_store = VectorStore(settings.CHROMA_PERSIST_DIR)
+        
+        callback(ProgressUpdate(
+            stage="loading",
+            message="Checking vector store...",
+            progress=0.85
+        ))
+        
+        # This will automatically load from PostgreSQL if Chroma is empty
+        vector_ready = vector_store.ensure_collection_loaded(str(kg_id), kg_conn)
+        
+        if vector_ready:
+            logger.info("Vector store verified and ready")
+            return True
+        else:
+            logger.error("Vector store could not be initialized")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Vector store verification failed: {e}", exc_info=True)
+        return False
 
 def build_knowledge_graph(
     source_conn: Any,

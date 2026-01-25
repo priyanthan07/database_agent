@@ -304,7 +304,7 @@ class ExecutorValidatorAgent(BaseAgent):
                 self.logger.info(f"   Category: {state.error_category}")
                 self.logger.info(f"   Pattern: {error_pattern}")
             else:
-                self.logger.error("✗ Failed to store error pattern")
+                self.logger.error(" Failed to store error pattern")
             
         except Exception as e:
             self.logger.error(f"Failed to store error pattern: {e}", exc_info=True)

@@ -337,6 +337,24 @@ class KGRepository:
         except Exception as e:
             logger.error(f"Failed to load KG: {e}")
             return None
+        
+    def check_embeddings_exist(self, kg_id: UUID) -> bool:
+        """Check if embeddings exist for this KG in PostgreSQL"""
+        query = """
+            SELECT COUNT(*) 
+            FROM kg_embeddings 
+            WHERE kg_id = %s
+        """
+        
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query, (str(kg_id),))
+                count = cur.fetchone()[0]
+                logger.info(f"Found {count} embeddings in PostgreSQL for KG {kg_id}")
+                return count > 0
+        except Exception as e:
+            logger.error(f"Failed to check embeddings: {e}")
+            return False
     
     def _load_kg_metadata(self, kg_id: UUID) -> Optional[Dict]:
         """Load KG metadata"""
