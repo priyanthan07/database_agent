@@ -162,6 +162,18 @@ class SQLGeneratorAgent(BaseAgent):
                     - The SQL query
                     - Explanation of what it does
                     - Confidence score (0.0-1.0)
+                    
+                    CRITICAL - You MUST use ALL tables provided in the schema.
+                    When a table has foreign keys to other included tables, JOIN them and SELECT 
+                    human-readable names instead of IDs:
+
+                    - If order_items.product_id exists AND products table is in schema:
+                    JOIN products ON order_items.product_id = products.product_id
+                    SELECT products.name AS product_name (NOT just product_id)
+
+                    WRONG: SELECT order_items.product_id FROM order_items
+                    CORRECT: SELECT products.name AS product_name FROM order_items JOIN products ON ...
+
             """
 
         try:

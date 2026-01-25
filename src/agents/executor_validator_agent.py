@@ -90,9 +90,18 @@ class ExecutorValidatorAgent(BaseAgent):
                     table_contexts=state.table_contexts
                 )
                 
-                state.error_category = error_classification["sub_category"]
+                # Handle case where error classification fails
+                if error_classification is None:
+                    self.logger.warning("Error classification returned None, using default")
+                    error_classification = {
+                        "category": "unknown",
+                        "sub_category": "unknown_error",
+                        "reasoning": "Error classification failed"
+                    }
                 
-                self.logger.info(f"Error classified as: {error_classification['category']} / {error_classification['sub_category']}")
+                state.error_category = error_classification.get("sub_category", "unknown_error")
+                
+                self.logger.info(f"Error classified as: {error_classification.get('category', 'unknown')} / {error_classification.get('sub_category', 'unknown')}")
                 
                 state.error_history.append({
                     "error_message": state.error_message,
@@ -116,10 +125,18 @@ class ExecutorValidatorAgent(BaseAgent):
                         state=state
                     )
                     
-                    state.route_to_agent = route_decision["route_to"]
-                    state.correction_summary = route_decision["reason"]
+                    # Handle case where route decision fails
+                    if route_decision is None:
+                        self.logger.warning("Route decision returned None, defaulting to complete")
+                        route_decision = {
+                            "route_to": "complete",
+                            "reason": "Error routing failed"
+                        }
                     
-                    if route_decision["route_to"] != "complete":
+                    state.route_to_agent = route_decision.get("route_to", "complete")
+                    state.correction_summary = route_decision.get("reason", "Unknown")
+                    
+                    if route_decision.get("route_to") != "complete":
                         state.retry_count += 1
                     
                     self.logger.info(

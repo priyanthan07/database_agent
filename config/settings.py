@@ -7,13 +7,6 @@ load_dotenv()
 class Settings(BaseModel):
     """Application settings from environment variables"""
     
-    # Source Database (ecommerce_db)
-    ECOMMERCE_USER: str = os.getenv("ECOMMERCE_USER")
-    ECOMMERCE_PASSWORD: str = os.getenv("ECOMMERCE_PASSWORD")
-    ECOMMERCE_HOST: str = os.getenv("ECOMMERCE_HOST")
-    ECOMMERCE_PORT: int = int(os.getenv("ECOMMERCE_PORT"))
-    ECOMMERCE_DATABASE: str = os.getenv("ECOMMERCE_DATABASE")
-    
     # KG Storage Database (kg_storage_db)
     KG_USER: str = os.getenv("KG_USER")
     KG_PASSWORD: str = os.getenv("KG_PASSWORD")

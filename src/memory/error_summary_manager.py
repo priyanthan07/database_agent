@@ -68,7 +68,7 @@ class ErrorSummaryManager:
         """
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(query, (kg_id,))
+                cur.execute(query, (str(kg_id),))
                 result = cur.fetchone()
                 
                 if result:
@@ -91,7 +91,7 @@ class ErrorSummaryManager:
             self.conn.rollback()
             
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(query, (kg_id,))
+                cur.execute(query, (str(kg_id),))
                 result = cur.fetchone()
                 self.conn.commit()
                 

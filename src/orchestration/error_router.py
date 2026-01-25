@@ -107,6 +107,22 @@ class ErrorRouter:
                 model="gpt-4o",
                 temperature=0.0
             )
+            
+            # Return the classification result
+            logger.info(f"Error classified as: {result.error_category} / {result.sub_category}")
+            
+            return {
+                "category": result.error_category,
+                "sub_category": result.sub_category,
+                "is_schema_related": result.is_schema_related,
+                "is_sql_generation_related": result.is_sql_generation_related,
+                "requires_table_reselection": result.requires_table_reselection,
+                "requires_sql_regeneration": result.requires_sql_regeneration,
+                "confidence": result.confidence,
+                "reasoning": result.reasoning,
+                "error_message": error_message
+            }
+            
         except Exception as e:
             logger.error(f"Error classification with GPT-4 failed: {e}", exc_info=True)
             # Fallback to basic classification
