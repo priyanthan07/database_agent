@@ -18,7 +18,6 @@ class BaseAgent(ABC):
         source_db_conn,
         agent_name: str
     ):
-        
         self.kg_manager = kg_manager
         self.openai_client = openai_client
         self.source_db_conn = source_db_conn

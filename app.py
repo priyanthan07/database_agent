@@ -219,7 +219,7 @@ def init_session_state():
             "host": "localhost",
             "port": 5432,
             "database": "",
-            "user": "",
+            "user": "postgres",
             "password": ""
         }
     }
@@ -286,7 +286,7 @@ def render_sidebar():
         
         for key, label in sections:
             is_active = st.session_state.active_section == key
-            if st.button(label, key=f"nav_{key}", use_container_width=True,
+            if st.button(label, key=f"nav_{key}", width='stretch',
                         type="primary" if is_active else "secondary"):
                 st.session_state.active_section = key
                 st.rerun()
@@ -305,7 +305,7 @@ def render_sidebar():
         st.session_state.show_sql = st.checkbox("Show SQL", value=st.session_state.show_sql)
         st.session_state.show_explanation = st.checkbox("Show Explanation", value=st.session_state.show_explanation)
         
-        if st.button("Clear Cache", use_container_width=True):
+        if st.button("Clear Cache", width='stretch'):
             clear_agent_service_cache()
             st.session_state.agent_service = None
             st.toast("Cache cleared")
@@ -336,7 +336,7 @@ def render_database_section():
                 generate_descriptions = st.checkbox("AI Descriptions", value=True)
                 generate_embeddings = st.checkbox("Embeddings", value=True)
             
-            submitted = st.form_submit_button("Connect", use_container_width=True, type="primary")
+            submitted = st.form_submit_button("Connect", width='stretch', type="primary")
             
             if submitted:
                 if not all([host, database, user, password]):
@@ -441,7 +441,7 @@ def render_chat_section():
         user_query = st.chat_input("Ask about your data...")
     
     with col2:
-        if st.button("Clear", use_container_width=True):
+        if st.button("Clear", width='stretch'):
             st.session_state.messages = []
             st.session_state.pending_clarification = None
             st.rerun()
@@ -487,7 +487,7 @@ def render_chat_message(msg: Dict, index: int):
             if msg.get("data") and len(msg["data"]) > 0:
                 with st.expander(f"Results ({len(msg['data'])} rows)", expanded=True):
                     df = pd.DataFrame(msg["data"])
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.dataframe(df, width='stretch', hide_index=True)
             
             if msg.get("explanation") and st.session_state.show_explanation:
                 with st.expander("Explanation", expanded=False):
@@ -531,11 +531,11 @@ def render_clarification_ui():
         col1, col2, col3 = st.columns([1, 1, 4])
         
         with col1:
-            if st.button("Submit", type="primary", use_container_width=True):
+            if st.button("Submit", type="primary", width='stretch'):
                 process_with_clarification(selected)
         
         with col2:
-            if st.button("Skip", use_container_width=True):
+            if st.button("Skip", width='stretch'):
                 st.session_state.pending_clarification = None
                 original_query = st.session_state.messages[-1]["content"] if st.session_state.messages else ""
                 if original_query:
@@ -887,7 +887,7 @@ def render_table_view(kg_data: Dict[str, Any]):
                 })
             
             if columns_data:
-                st.dataframe(pd.DataFrame(columns_data), use_container_width=True, hide_index=True)
+                st.dataframe(pd.DataFrame(columns_data), width='stretch', hide_index=True)
     
     st.markdown("**Relationships**")
     
@@ -896,7 +896,7 @@ def render_table_view(kg_data: Dict[str, Any]):
             "From": f"{r.get('from', '')}.{r.get('from_column', '')}",
             "To": f"{r.get('to', '')}.{r.get('to_column', '')}"
         } for r in relationships]
-        st.dataframe(pd.DataFrame(rel_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rel_data), width='stretch', hide_index=True)
     else:
         st.info("No relationships")
 
@@ -940,7 +940,7 @@ def render_history_section():
             
             if r.get("data"):
                 st.caption(f"{len(r['data'])} rows returned")
-                st.dataframe(pd.DataFrame(r["data"]), use_container_width=True, hide_index=True)
+                st.dataframe(pd.DataFrame(r["data"]), width='stretch', hide_index=True)
             
             if r.get("error"):
                 st.error(r["error"])
