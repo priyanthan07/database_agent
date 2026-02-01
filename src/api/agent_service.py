@@ -230,12 +230,104 @@ class AgentService:
                 rating=rating
             )
             
-            if success:
-                logger.info(f"Feedback submitted for query {query_log_id}")
-                return {"success": True}
-            else:
+            if not success:
                 return {"success": False, "error": "Failed to update feedback"}
+            
+            logger.info("Feedback saved successfully")
+            
+            # Step 2: Determine if lesson extraction should be triggered
+            should_extract_lesson = self._should_extract_lesson_from_feedback(
+                feedback=feedback,
+                rating=rating
+            )
+            
+            if should_extract_lesson:
                 
+                logger.info("Feedback indicates issue - triggering lesson extraction")
+            
+                # Step 3: Retrieve full query log for context
+                query_log = self.memory_repository.get_query_log_by_id(query_log_id)
+                
+                if not query_log:
+                    logger.warning(f"Could not retrieve query log {query_log_id} for lesson extraction")
+                    return {"success": True, "lesson_extracted": False}
+                
+                # Step 4: Extract kg_id from query log
+                kg_id = query_log.get("kg_id")
+                if not kg_id:
+                    logger.warning("No kg_id in query log")
+                    return {"success": True, "lesson_extracted": False}
+                
+                # Step 4.5: Retrieve related error patterns for additional context
+                error_patterns = self.memory_repository.get_error_patterns_for_query(
+                    kg_id=kg_id,
+                    error_category=query_log.get("error_category"),
+                    affected_tables=query_log.get("tables_used"),
+                    limit=3  # Get top 3 most relevant patterns
+                )
+                
+                if error_patterns:
+                    logger.info(f"Found {len(error_patterns)} related error patterns")
+                else:
+                    logger.info("No related error patterns found")
+                
+                # Step 5: Trigger lesson extraction
+                lesson_success = self.error_summary_manager.add_lesson_from_feedback(
+                    kg_id=UUID(kg_id),
+                    query_log=query_log,
+                    feedback=feedback,
+                    rating=rating,
+                    error_patterns=error_patterns
+                )
+                
+                if lesson_success:
+                    logger.info("Lesson extracted and added to error summary")
+                    return {"success": True, "lesson_extracted": True}
+                else:
+                    logger.info("No lesson extracted from feedback")
+                    return {"success": True, "lesson_extracted": False}
+                
+            else:
+                logger.info("Positive feedback - no lesson extraction needed")
+                return {"success": True, "lesson_extracted": False}
+            
         except Exception as e:
-            logger.error(f"Failed to submit feedback: {e}")
+            logger.error(f"Failed to submit feedback: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
+
+    def _should_extract_lesson_from_feedback(
+        self,
+        feedback: str,
+        rating: Optional[int] = None
+    ) -> bool:
+        """
+            Determine if feedback warrants lesson extraction.
+        """
+        # Negative emoji feedback
+        if feedback in ["Not helpful", "not_helpful", "incorrect"]:
+            return True
+        
+        # Low rating
+        if rating is not None and rating <= 2:
+            return True
+        
+        # Positive emoji feedback - skip
+        if feedback == "Helpful":
+            return False
+        
+        # Custom text feedback - always analyze (user provided details)
+        # Check if feedback is more than just emoji text
+        if len(feedback) > 20:  # More than just "Not helpful"
+            return True
+        
+        # Check for negative keywords
+        negative_keywords = [
+            "wrong", "incorrect", "bad", "error", "missing", 
+            "failed", "issue", "problem", "not working"
+        ]
+        
+        feedback_lower = feedback.lower()
+        if any(keyword in feedback_lower for keyword in negative_keywords):
+            return True
+        
+        return False   

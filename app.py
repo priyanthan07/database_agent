@@ -597,9 +597,12 @@ def submit_query_feedback(msg_index: int, query_log_id: Optional[str], feedback_
             
             if result.success:
                 st.session_state[f"feedback_submitted_{msg_index}"] = True
-                st.toast(f"Feedback saved for query {query_log_id[:8]}...")
+                if result.get("lesson_extracted"):
+                    st.toast(f" Feedback saved and lesson extracted for query {query_log_id[:8]}...")
+                else:
+                    st.toast(f" Feedback saved for query {query_log_id[:8]}...")
             else:
-                st.toast(f"Failed to save feedback: {result.error}")
+                st.toast(f" Failed to save feedback: {result.error}")
                 st.session_state[f"feedback_submitted_{msg_index}"] = True
         else:
             st.session_state[f"feedback_submitted_{msg_index}"] = True

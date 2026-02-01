@@ -171,6 +171,172 @@ class ErrorSummaryManager:
             logger.error(f"Failed to add lesson from error: {e}")
             return False
         
+    def add_lesson_from_feedback(
+        self,
+        kg_id: UUID,
+        query_log: Dict[str, Any],
+        feedback: str,
+        rating: Optional[int] = None,
+        error_patterns: Optional[List[Dict[str, Any]]] = None
+    ) -> bool:
+        """
+            Extract lesson from user feedback on a query.
+        """
+        logger.info(f"Extracting lesson from feedback: '{feedback[:50]}...'")
+        
+        if error_patterns:
+            logger.info(f"Using {len(error_patterns)} related error patterns for context")
+        
+        try:
+            # Determine feedback severity
+            is_negative = (
+                feedback in ["Not helpful", "not_helpful", "incorrect"] or
+                (rating is not None and rating <= 2) or
+                "wrong" in feedback.lower() or
+                "incorrect" in feedback.lower() or
+                "bad" in feedback.lower()
+            )
+            
+            execution_success = query_log.get("execution_success", False)
+            
+            # Only extract lessons from negative feedback or failed queries
+            if not is_negative and execution_success:
+                logger.info("Positive feedback on successful query - no lesson needed")
+                return False
+            
+            # Extract lesson using LLM
+            lesson = self._extract_lesson_from_feedback(
+                query_log=query_log,
+                feedback=feedback,
+                rating=rating,
+                error_patterns=error_patterns
+            )
+            
+            if not lesson:
+                logger.warning("Failed to extract lesson from feedback")
+                return False
+            
+            # Add lesson to appropriate category
+            success = self._add_lesson_to_summary(
+                kg_id=kg_id,
+                lesson_type=lesson["lesson_type"],
+                lesson_rule=lesson["lesson_rule"]
+            )
+            
+            if success:
+                logger.info(f"Added {lesson['lesson_type']} lesson from feedback: {lesson['lesson_rule'][:50]}...")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Failed to add lesson from feedback: {e}")
+            return False
+    
+    def _extract_lesson_from_feedback(
+        self,
+        query_log: Dict[str, Any],
+        feedback: str,
+        rating: Optional[int] = None,
+        error_patterns: Optional[List[Dict[str, Any]]] = None
+    ) -> Optional[Dict[str, str]]:
+        """
+            Use LLM to extract a lesson from user feedback.
+            
+            Combines query context + execution result + user feedback to derive lesson.
+        """
+        user_question = query_log.get("user_question", "")
+        generated_sql = query_log.get("generated_sql", "")
+        execution_success = query_log.get("execution_success", False)
+        error_message = query_log.get("error_message", "")
+        error_category = query_log.get("error_category", "")
+        tables_used = query_log.get("tables_used", [])
+        
+        # Build context for LLM
+        execution_context = ""
+        if execution_success:
+            execution_context = "Query executed successfully, but user provided negative feedback."
+        else:
+            execution_context = f"Query failed with error: {error_message}\nError category: {error_category}"
+        
+        rating_context = f"User rating: {rating}/5" if rating else ""
+        
+        error_patterns_context = ""
+        if error_patterns and len(error_patterns) > 0:
+            error_patterns_context = "\n\nRelated Error Patterns from Past Queries:"
+            for i, pattern in enumerate(error_patterns, 1):
+                error_patterns_context += f"""
+                                {i}. Error Pattern:
+                                - Category: {pattern.get('error_category')}
+                                - Pattern Description: {pattern.get('error_pattern', 'N/A')}
+                                - Fix Applied: {pattern.get('fix_applied', 'N/A')}
+                                - Occurrence Count: {pattern.get('occurrence_count', 0)}
+                                - Success Rate: {pattern.get('success_rate_after_fix', 'N/A')}
+                                """
+        
+        prompt = f"""Analyze this database query and user feedback to extract a reusable lesson.
+
+        User Question: {user_question}
+
+        Generated SQL: {generated_sql}
+
+        Execution Result: {execution_context}
+
+        Tables Used: {', '.join(tables_used) if tables_used else 'None'}
+
+        User Feedback: {feedback}
+        {rating_context}
+        {error_patterns_context}
+        
+        IMPORTANT: 
+        - If multiple issues exist, identify the PRIMARY ROOT CAUSE
+        - Extract ONE lesson for the most critical issue
+        - Prioritize schema issues over SQL formatting issues
+        - Prioritize logic errors over syntax errors
+        - Use error patterns to understand recurring problems and their solutions
+
+        Based on the user's feedback and query context, determine:
+        1. lesson_type: Is this a 'schema' lesson (about table/column selection) or 'sql' lesson (about SQL syntax/logic/quality)?
+        2. lesson_rule: Write a concise rule (max 30 words) that would prevent this issue in future queries.
+
+        Guidelines for lesson_type:
+        - schema: Wrong tables selected, missing columns, incorrect relationships, missing enrichment tables
+        - sql: Syntax errors, incorrect joins, wrong aggregations, data type issues, logic errors, result quality issues
+
+        Guidelines for lesson_rule:
+        - Focus on the ROOT CAUSE indicated by feedback
+        - Make it actionable and specific
+        - Format: "When [condition], [action]" or "Always/Never [action] when [condition]"
+
+        Examples:
+        - Schema lesson: "When user asks about product names, always include products table for human-readable output, not just product IDs"
+        - SQL lesson: "When aggregating data, always include GROUP BY clause for non-aggregated columns"
+        """
+        
+        try:
+            result = self.openai_client.generate_structured_completion(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a database expert extracting reusable rules from query feedback. Be concise and specific."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                response_model=LessonExtractionOutput,
+                model="gpt-4o-mini",
+                temperature=0.0
+            )
+            
+            logger.info(f"Extracted lesson from feedback: {result.lesson_type} - {result.lesson_rule}")
+            
+            return {
+                "lesson_type": result.lesson_type,
+                "lesson_rule": result.lesson_rule
+            }
+            
+        except Exception as e:
+            logger.error(f"LLM lesson extraction from feedback failed: {e}")
+            return None
+        
     def _extract_lesson(
         self,
         error_message: str,
