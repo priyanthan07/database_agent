@@ -103,8 +103,7 @@ class QueryMemoryRepository:
         
         query = """
             UPDATE kg_query_log
-            SET user_feedback = %s,
-                updated_at = CURRENT_TIMESTAMP
+            SET user_feedback = %s
             WHERE query_id = %s
             RETURNING query_id
         """

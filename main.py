@@ -153,6 +153,7 @@ class QueryResult:
 class FeedbackResult:
     """Result of feedback submission"""
     success: bool
+    lesson_extracted: bool = False
     error: Optional[str] = None
 
 
@@ -993,25 +994,19 @@ def process_query(
 
 def submit_feedback(
     agent_service: AgentService,
-    query_log_id: UUID,
+    query_log_id: Union[UUID, str],
     feedback: str,
     rating: Optional[int] = None
 ) -> FeedbackResult:
     """
-    Submit user feedback for a query result.
-    
-    Args:
-        agent_service: AgentService instance
-        query_log_id: Query log ID
-        feedback: Feedback text
-        rating: Optional rating (1-5)
-    
-    Returns:
-        FeedbackResult indicating success or failure
+        Submit user feedback for a query result.
     """
     logger.info(f"Submitting feedback for query {query_log_id}")
     
     try:
+        if isinstance(query_log_id, str):
+            query_log_id = UUID(query_log_id)
+            
         result = agent_service.submit_feedback(
             query_log_id=query_log_id,
             feedback=feedback,
@@ -1020,7 +1015,7 @@ def submit_feedback(
         
         if result.get("success"):
             logger.info("Feedback submitted successfully")
-            return FeedbackResult(success=True)
+            return FeedbackResult(success=True, lesson_extracted=result.get("lesson_extracted", False))
         else:
             return FeedbackResult(success=False, error=result.get("error"))
             

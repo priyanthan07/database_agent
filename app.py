@@ -555,66 +555,126 @@ def render_feedback_ui(msg_index: int, msg: Dict):
     # Get query_log_id from message metadata
     query_log_id = msg.get("metadata", {}).get("query_log_id")
     
+    show_form_key = f"show_feedback_form_{msg_index}"
+    
     col1, col2, col3, col4 = st.columns([1, 1, 1, 5])
     
     with col1:
         if st.button("👍", key=f"thumbs_up_{msg_index}", help="Helpful"):
             submit_query_feedback(msg_index, query_log_id, "Helpful", 5)
+            return
     
     with col2:
         if st.button("👎", key=f"thumbs_down_{msg_index}", help="Not helpful"):
             submit_query_feedback(msg_index, query_log_id, "Not helpful", 1)
+            return
     
     with col3:
         if st.button("💬", key=f"show_feedback_{msg_index}", help="Add comment"):
-            st.session_state[f"show_feedback_form_{msg_index}"] = True
+            st.session_state[show_form_key] = True
             st.rerun()
     
-    if st.session_state.get(f"show_feedback_form_{msg_index}"):
+    if st.session_state.get(show_form_key):
+        
+        feedback_key = f"feedback_text_{msg_index}"
+        rating_key = f"feedback_rating_{msg_index}"
+        
         feedback_text = st.text_area(
             "Your feedback",
-            key=f"feedback_text_{msg_index}",
+            key=feedback_key,
             placeholder="What could be improved?",
             height=80
         )
         
-        rating = st.slider("Rating", 1, 5, 3, key=f"rating_{msg_index}")
+        rating = st.slider("Rating", 1, 5, 3, key=rating_key)
         
-        if st.button("Submit Feedback", key=f"submit_fb_{msg_index}"):
-            submit_query_feedback(msg_index, query_log_id, feedback_text, rating)
-
+        col_submit, col_cancel = st.columns([1, 1])
+        
+        with col_submit:
+            if st.button("Submit Feedback", key=f"submit_fb_{msg_index}", type="primary"):
+                
+                actual_feedback = st.session_state.get(feedback_key, "")
+                actual_rating = st.session_state.get(rating_key, 3)
+                
+                if actual_feedback.strip():
+                    submit_query_feedback(msg_index, query_log_id, actual_feedback, actual_rating)
+                    # Clean up
+                    if show_form_key in st.session_state:
+                        del st.session_state[show_form_key]
+                    return
+                else:
+                    st.warning("Please enter some feedback text")
+        
+        with col_cancel:
+            if st.button("Cancel", key=f"cancel_fb_{msg_index}"):
+                # Clean up feedback form state
+                if show_form_key in st.session_state:
+                    del st.session_state[show_form_key]
+                if feedback_key in st.session_state:
+                    del st.session_state[feedback_key]
+                if rating_key in st.session_state:
+                    del st.session_state[rating_key]
+                st.rerun()
 
 def submit_query_feedback(msg_index: int, query_log_id: Optional[str], feedback_text: str, rating: int):
     """Submit feedback for a query to the backend"""
     try:
-        if query_log_id and st.session_state.agent_service:
-            result = submit_feedback(
-                agent_service=st.session_state.agent_service,
-                query_log_id=query_log_id,
-                feedback=feedback_text,
-                rating=rating
-            )
-            
-            if result.success:
-                st.session_state[f"feedback_submitted_{msg_index}"] = True
-                if result.get("lesson_extracted"):
-                    st.toast(f" Feedback saved and lesson extracted for query {query_log_id[:8]}...")
-                else:
-                    st.toast(f" Feedback saved for query {query_log_id[:8]}...")
-            else:
-                st.toast(f" Failed to save feedback: {result.error}")
-                st.session_state[f"feedback_submitted_{msg_index}"] = True
-        else:
+        print(f"\n{'='*60}")
+        print(f"submit_query_feedback CALLED")
+        print(f"  msg_index: {msg_index}")
+        print(f"  query_log_id: {query_log_id}")
+        print(f"  feedback_text: {feedback_text[:50] if feedback_text else 'Empty'}...")
+        print(f"  rating: {rating}")
+        print(f"  agent_service exists: {st.session_state.get('agent_service') is not None}")
+        print(f"  agent_service type: {type(st.session_state.get('agent_service'))}")
+        print(f"{'='*60}\n")
+        
+        if not query_log_id:
+            print("EARLY RETURN: No query_log_id")
             st.session_state[f"feedback_submitted_{msg_index}"] = True
-            if not query_log_id:
-                st.toast("Feedback noted (no query ID available)")
+            st.toast("⚠ Feedback noted (no query ID available)")
+            st.rerun()
+            return
+        
+        if not st.session_state.agent_service:
+            print("EARLY RETURN: No agent_service - THIS IS THE PROBLEM!")
+            st.session_state[f"feedback_submitted_{msg_index}"] = True
+            st.toast("⚠ Thank you for your feedback!")
+            st.rerun()
+            return
+        
+        # Call the main.py submit_feedback function
+        print("Calling submit_feedback from main.py...")
+        result = submit_feedback(
+            agent_service=st.session_state.agent_service,
+            query_log_id=query_log_id,  # Pass as string, main.py will convert
+            feedback=feedback_text,
+            rating=rating
+        )
+        
+        print(f"Result received: {result}")
+        
+        # Access FeedbackResult attributes directly, not as dictionary
+        if result.success:
+            st.session_state[f"feedback_submitted_{msg_index}"] = True
+            
+            # Show appropriate message based on lesson extraction
+            if result.lesson_extracted:
+                st.toast(f" Feedback saved and lesson extracted for query {query_log_id[:8]}...")
             else:
-                st.toast("Thank you for your feedback!")
+                st.toast(f" Feedback saved for query {query_log_id[:8]}...")
+        else:
+            st.toast(f" Failed to save feedback: {result.error}")
+            st.session_state[f"feedback_submitted_{msg_index}"] = True
         
         st.rerun()
         
     except Exception as e:
+        print(f"EXCEPTION in submit_query_feedback: {e}")
+        import traceback
+        traceback.print_exc()
         st.error(f"Failed to submit feedback: {e}")
+        st.session_state[f"feedback_submitted_{msg_index}"] = True
 
 
 def process_user_query(user_query: str, force: bool = False, clarifications: Dict = None):

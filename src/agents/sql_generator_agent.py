@@ -145,8 +145,6 @@ class SQLGeneratorAgent(BaseAgent):
                     Similar Past Queries (for reference):
                     {examples_text}
 
-                    {lessons_section}
-
                     Instructions:
                     1. Think step-by-step using chain-of-thought reasoning
                     2. Use proper JOINs based on the relationships provided
@@ -173,6 +171,8 @@ class SQLGeneratorAgent(BaseAgent):
 
                     WRONG: SELECT order_items.product_id FROM order_items
                     CORRECT: SELECT products.name AS product_name FROM order_items JOIN products ON ...
+                    
+                    {lessons_section}
 
             """
 

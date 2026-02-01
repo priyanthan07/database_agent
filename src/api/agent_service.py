@@ -2,6 +2,7 @@ import logging
 import time
 from typing import Dict, Any, Optional
 from uuid import UUID
+from pydantic import BaseModel, Field
 
 from ..kg.manager.kg_manager import KGManager
 from ..openai_client import OpenAIClient
@@ -11,9 +12,12 @@ from ..orchestration.agent_state import AgentState
 from ..orchestration.workflow_graph import AgentWorkflow
 from ..agents.tools.clarification_tool import ClarificationTool
 
-
 logger = logging.getLogger(__name__)
 
+class DecisionFormat(BaseModel):
+    should_extract_lesson: bool = Field(description="Final decision to extract the lesson")
+    reasoning: str = Field(description="Brief explanation of your decision")
+    identified_issue_type: str = Field(description="schema/sql/formatting/other")
 
 class AgentService:
     """
@@ -187,6 +191,7 @@ class AgentService:
                 "sql": state.generated_sql,
                 "explanation": state.sql_explanation,
                 "metadata": {
+                    "query_log_id": str(state.query_log_id) if state.query_log_id else None,
                     "tables_used": state.final_tables,
                     "confidence_score": state.confidence_score,
                     "iterations": state.retry_count + 1,
@@ -206,6 +211,7 @@ class AgentService:
                 "error_category": state.error_category,
                 "sql_attempted": state.generated_sql,
                 "metadata": {
+                    "query_log_id": str(state.query_log_id) if state.query_log_id else None,
                     "tables_selected": state.final_tables,
                     "iterations": state.retry_count + 1,
                     "error_history": state.error_history,
@@ -235,23 +241,24 @@ class AgentService:
             
             logger.info("Feedback saved successfully")
             
-            # Step 2: Determine if lesson extraction should be triggered
+            # Step 2: Retrieve full query log for context
+            query_log = self.memory_repository.get_query_log_by_id(query_log_id)
+            
+            if not query_log:
+                logger.warning(f"Could not retrieve query log {query_log_id} for lesson extraction")
+                return {"success": True, "lesson_extracted": False}
+            
+            # Step 3: Determine if lesson extraction should be triggered
             should_extract_lesson = self._should_extract_lesson_from_feedback(
                 feedback=feedback,
-                rating=rating
+                rating=rating,
+                query_log=query_log
             )
             
             if should_extract_lesson:
                 
                 logger.info("Feedback indicates issue - triggering lesson extraction")
             
-                # Step 3: Retrieve full query log for context
-                query_log = self.memory_repository.get_query_log_by_id(query_log_id)
-                
-                if not query_log:
-                    logger.warning(f"Could not retrieve query log {query_log_id} for lesson extraction")
-                    return {"success": True, "lesson_extracted": False}
-                
                 # Step 4: Extract kg_id from query log
                 kg_id = query_log.get("kg_id")
                 if not kg_id:
@@ -298,36 +305,95 @@ class AgentService:
     def _should_extract_lesson_from_feedback(
         self,
         feedback: str,
-        rating: Optional[int] = None
+        rating: Optional[int] = None,
+        query_log: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
             Determine if feedback warrants lesson extraction.
         """
-        # Negative emoji feedback
-        if feedback in ["Not helpful", "not_helpful", "incorrect"]:
-            return True
-        
-        # Low rating
-        if rating is not None and rating <= 2:
-            return True
-        
-        # Positive emoji feedback - skip
-        if feedback == "Helpful":
+        # 1. Skip very short positive responses
+        if feedback in ["Helpful", "helpful", "Good", "good", "Great", "great", "👍", "👍🏻"]:
+            logger.info("Simple positive emoji - no lesson needed")
             return False
         
-        # Custom text feedback - always analyze (user provided details)
-        # Check if feedback is more than just emoji text
-        if len(feedback) > 20:  # More than just "Not helpful"
+        # 2. Always trigger for very low ratings
+        if rating is not None and rating == 1:
+            logger.info("Rating of 1 - definitely triggering lesson extraction")
             return True
         
-        # Check for negative keywords
-        negative_keywords = [
-            "wrong", "incorrect", "bad", "error", "missing", 
-            "failed", "issue", "problem", "not working"
-        ]
+        # 3. Skip if feedback is too short to be meaningful
+        if len(feedback) < 15:
+            logger.info("Feedback too short - no lesson needed")
+            return False
         
-        feedback_lower = feedback.lower()
-        if any(keyword in feedback_lower for keyword in negative_keywords):
-            return True
+        # Extract context from query_log if available
+        query_success = True
+        generated_sql = ""
+        user_query = ""
         
-        return False   
+        if query_log:
+            query_success = query_log.get("execution_success", True)
+            generated_sql = query_log.get("generated_sql", "")
+            user_query = query_log.get("user_question", "")
+        
+        # Now use LLM to make intelligent decision
+        logger.info("Calling LLM to determine if feedback warrants lesson extraction...")
+        
+        prompt = f"""You are analyzing user feedback on a Text-to-SQL system to determine if it contains actionable insights that should be used to improve the system.
+            **User's Original Query:**
+            {user_query if user_query else "Not available"}
+
+            **Generated SQL:**
+            ```sql
+            {generated_sql[:500] if generated_sql else "Not available"}
+            ```
+
+            **Query Execution Status:** {"✅ Successful" if query_success else "❌ Failed"}
+
+            **User's Feedback:**
+            "{feedback}"
+
+            **User's Rating:** {rating if rating else "Not provided"} out of 5
+
+            **Your Task:**
+            Determine if this feedback contains constructive criticism, improvement suggestions, or identifies issues that the system should learn from.
+
+            **Trigger lesson extraction if:**
+            - User points out incorrect results, missing data, or logical errors
+            - User suggests better formatting, structure, or data presentation
+            - User identifies missing columns, wrong joins, or schema issues
+            - User provides constructive criticism even if query succeeded
+            - User explains what could be improved or done differently
+
+            **Do NOT trigger if:**
+            - Feedback is purely positive with no suggestions ("Great!", "Perfect!")
+            - Feedback is generic encouragement without specifics
+            - Feedback is unrelated to the query quality
+
+            """
+
+        try:
+            response = self.openai_client.generate_structured_completion(
+                messages=[{"role": "user", "content": prompt}],
+                response_model=DecisionFormat,
+                model="gpt-4o-mini",  # Cheap model for classification
+                temperature=0.0,
+            )
+            
+            should_extract = response.should_extract_lesson
+            reasoning = response.reasoning
+            issue_type = response.identified_issue_type
+            
+            logger.info(f"LLM decision: {'EXTRACT' if should_extract else 'SKIP'}")
+            logger.info(f"Reasoning: {reasoning}")
+            if should_extract:
+                logger.info(f"Issue type: {issue_type}")
+            
+            return should_extract
+            
+        except Exception as e:
+            logger.error(f"LLM decision failed: {e}")
+            # Fallback: if rating ≤2 or long feedback, extract
+            fallback_decision = (rating is not None and rating <= 2) or len(feedback) > 50
+            logger.info(f"Using fallback decision: {fallback_decision}")
+            return fallback_decision
