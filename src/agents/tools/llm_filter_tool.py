@@ -76,7 +76,7 @@ class LLMFilterTool:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a database expert. Analyze queries and select relevant tables with clear reasoning."
+                        "content": f"You are a database expert. Analyze queries and select relevant tables with clear reasoning. CRITICAL RULES - YOU MUST FOLLOW THESE:{lessons_section}"
                     },
                     {"role": "user", "content": prompt}
                 ],

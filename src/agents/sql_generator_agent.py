@@ -33,7 +33,7 @@ class SQLGeneratorAgent(BaseAgent):
         # Initialize tools
         self.query_memory = QueryMemoryTool(memory_repository, openai_client)
         self.sql_validator = SQLValidationTool()
-        
+    
     def process(self, state: AgentState) -> AgentState:
         """Main processing logic for SQL generation"""
         self.log_start(state)
@@ -104,7 +104,7 @@ class SQLGeneratorAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"SQL generation failed: {e}", exc_info=True)
             self.record_error(state, "sql_generation_error", str(e))
-            state.route_to_agent = "complete"
+            state.route_to_agent = "complete"           
             self.log_end(state, success=False)
             return state
         
@@ -127,6 +127,9 @@ class SQLGeneratorAgent(BaseAgent):
         
         lessons_section = ""
         if sql_lessons and sql_lessons.strip():
+            self.logger.info(f"=== SQL LESSONS BEING USED ===")
+            self.logger.info(f"{sql_lessons}")
+            self.logger.info(f"=== END LESSONS ===")
             lessons_section = f"""
                 IMPORTANT - Learned Rules from Past Mistakes:
                 {sql_lessons}
@@ -144,6 +147,9 @@ class SQLGeneratorAgent(BaseAgent):
 
                     Similar Past Queries (for reference):
                     {examples_text}
+                    
+                    CRITICAL - Apply These Learned Rules:
+                    {sql_lessons}
 
                     Instructions:
                     1. Think step-by-step using chain-of-thought reasoning
@@ -181,7 +187,7 @@ class SQLGeneratorAgent(BaseAgent):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a PostgreSQL expert. Generate accurate SQL queries with clear reasoning."
+                        "content": f"You are a PostgreSQL expert. Generate accurate SQL queries with clear reasoning. CRITICAL RULES - YOU MUST FOLLOW THESE: {sql_lessons}"
                     },
                     {"role": "user", "content": prompt}
                 ],

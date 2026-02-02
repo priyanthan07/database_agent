@@ -301,6 +301,40 @@ def render_sidebar():
             st.caption(f"Relations: {info.get('relationships_count', 0)}")
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
+        st.markdown("---")  # Separator
+        st.subheader("🔍 Observability")
+        
+        langfuse_url = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        
+        # Button that opens Langfuse in new tab
+        st.markdown(
+            f"""
+            <a href="{langfuse_url}" target="_blank">
+                <button style="
+                    background-color: #4CAF50;
+                    border: none;
+                    color: white;
+                    padding: 10px 20px;
+                    text-align: center;
+                    text-decoration: none;
+                    display: inline-block;
+                    font-size: 16px;
+                    margin: 4px 2px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    width: 100%;
+                ">
+                    📊 Open Langfuse Dashboard
+                </button>
+            </a>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Optional: Show last trace ID if available
+        if "last_trace_id" in st.session_state and st.session_state.last_trace_id:
+            st.caption(f"Last Trace ID: {st.session_state.last_trace_id[:8]}...")
+        
         st.markdown("**Display**")
         st.session_state.show_sql = st.checkbox("Show SQL", value=st.session_state.show_sql)
         st.session_state.show_explanation = st.checkbox("Show Explanation", value=st.session_state.show_explanation)
@@ -708,6 +742,9 @@ def process_user_query(user_query: str, force: bool = False, clarifications: Dic
                 "needs_clarification": result.needs_clarification,
                 "metadata": result.metadata  # Contains query_log_id
             }
+            
+            if hasattr(result, 'trace_id') and result.trace_id:
+                st.session_state.last_trace_id = result.trace_id
             
             if result.success:
                 row_count = len(result.data) if result.data else 0

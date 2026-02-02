@@ -3,6 +3,10 @@ import time
 from typing import Dict, Any, Optional
 from uuid import UUID
 from pydantic import BaseModel, Field
+from langfuse import Langfuse
+import os
+from dotenv import load_dotenv
+from langfuse import observe
 
 from ..kg.manager.kg_manager import KGManager
 from ..openai_client import OpenAIClient
@@ -13,6 +17,8 @@ from ..orchestration.workflow_graph import AgentWorkflow
 from ..agents.tools.clarification_tool import ClarificationTool
 
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 class DecisionFormat(BaseModel):
     should_extract_lesson: bool = Field(description="Final decision to extract the lesson")
@@ -51,6 +57,14 @@ class AgentService:
         )
         self.clarification_tool = ClarificationTool(openai_client)
         
+        # Initialize Langfuse client
+        self.langfuse = Langfuse(
+            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        )
+    
+    @observe(name="query_processing")        
     def query(
         self,
         user_query: str,
@@ -63,10 +77,25 @@ class AgentService:
         logger.info(f"Processing query: '{user_query}'")
         start_time = time.time()
         
+        self.langfuse.update_current_trace(
+            input={
+                "user_query": user_query,
+                "kg_id": str(kg_id),
+                "clarifications": clarifications
+            },
+            metadata={
+                "kg_id": str(kg_id)
+            }
+        )
+        
         try:
             # Load KG to verify it exists
             kg = self.kg_manager.load_kg(kg_id)
             if not kg:
+                self.langfuse.update_current_trace(
+                    output={"error": "Knowledge Graph not found"},
+                    level="ERROR"
+                )
                 return {
                     "success": False,
                     "error": f"Knowledge Graph not found: {kg_id}",
@@ -83,6 +112,11 @@ class AgentService:
                     mcq = self.clarification_tool.generate_mcq(
                         user_query=user_query,
                         ambiguities=ambiguity_result["ambiguities"]
+                    )
+                    
+                    self.langfuse.update_current_trace(
+                        output={"needs_clarification": True},
+                        metadata={"clarification_reason": ambiguity_result["reasoning"]}
                     )
                     
                     return {
@@ -109,6 +143,11 @@ class AgentService:
                 lesson_count = error_summary.get("lesson_count", 0)
                 word_count = error_summary.get("word_count", 0)
                 logger.info(f"Loaded error summary: {lesson_count} lessons, {word_count} words")
+                
+                if schema_lessons:
+                    logger.info(f"SCHEMA LESSONS:\n{schema_lessons}")
+                if sql_lessons:
+                    logger.info(f"SQL LESSONS:\n{sql_lessons}")
             else:
                 logger.info("No error lessons available for this KG")
             
@@ -122,6 +161,18 @@ class AgentService:
                 sql_lessons=sql_lessons
             )
             
+            # Before workflow execution, add this:
+            self.langfuse.update_current_span(
+                input={
+                    "user_query": user_query,
+                    "kg_id": str(kg_id),
+                    "retry_count": 0
+                },
+                metadata={
+                    "workflow_stage": "execution"
+                }
+            )
+            
             # Execute workflow
             final_state = self.workflow.execute(initial_state)
             
@@ -129,8 +180,31 @@ class AgentService:
             total_time_ms = int((time.time() - start_time) * 1000)
             final_state.total_time_ms = total_time_ms
             
+            # End workflow span
+            self.langfuse.update_current_span(
+                output={
+                    "success": final_state.execution_success,
+                    "retry_count": final_state.retry_count,
+                    "final_agent": final_state.route_to_agent
+                },
+                metadata={
+                    "latency_ms": total_time_ms
+                }
+            )
+            
             # Format response
             response = self._format_response(final_state)
+            
+            # Update trace with final output
+            self.langfuse.update_current_trace(
+                output={
+                    "success": response.get("success"),
+                    "query_log_id": response.get("metadata", {}).get("query_log_id"),
+                    "retry_count": final_state.retry_count
+                }
+            )
+            
+            self.langfuse.flush()
             
             logger.info(f"Query processing complete in {total_time_ms}ms")
             
@@ -138,6 +212,10 @@ class AgentService:
             
         except Exception as e:
             logger.error(f"Query processing failed: {e}", exc_info=True)
+            self.langfuse.update_current_trace(
+                output={"error": str(e)},
+                level="ERROR"
+            )
             return {
                 "success": False,
                 "error": str(e),

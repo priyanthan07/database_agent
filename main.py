@@ -81,10 +81,8 @@ def setup_logging(
     
     return root_logger
 
-
 # Initialize logging
 logger = setup_logging()
-
 
 @dataclass
 class ConnectionResult:
@@ -94,7 +92,6 @@ class ConnectionResult:
     kg_conn: Optional[Any] = None
     error: Optional[str] = None
     settings: Optional[Settings] = None
-
 
 @dataclass
 class KGBuildResult:
@@ -108,7 +105,6 @@ class KGBuildResult:
     error: Optional[str] = None
     kg_data: Optional[Dict[str, Any]] = None
 
-
 @dataclass
 class KGLoadResult:
     """Result of Knowledge Graph load operation"""
@@ -120,7 +116,6 @@ class KGLoadResult:
     columns_count: int = 0
     error: Optional[str] = None
     kg_data: Optional[Dict[str, Any]] = None
-
 
 @dataclass
 class KGListItem:
@@ -134,7 +129,6 @@ class KGListItem:
     created_at: datetime
     last_updated: datetime
 
-
 @dataclass
 class QueryResult:
     """Result of query processing"""
@@ -147,7 +141,7 @@ class QueryResult:
     needs_clarification: bool = False
     clarification_request: Optional[Dict[str, Any]] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-
+    trace_id: Optional[str] = None
 
 @dataclass
 class FeedbackResult:
@@ -155,8 +149,6 @@ class FeedbackResult:
     success: bool
     lesson_extracted: bool = False
     error: Optional[str] = None
-
-
 
 @dataclass
 class ProgressUpdate:
@@ -965,7 +957,8 @@ def process_query(
                 data=response.get("data"),
                 sql=response.get("sql"),
                 explanation=response.get("explanation"),
-                metadata=response.get("metadata", {})
+                metadata=response.get("metadata", {}),
+                trace_id=response.get("trace_id")
             )
         else:
             callback(ProgressUpdate(
@@ -979,7 +972,8 @@ def process_query(
                 error=response.get("error"),
                 error_category=response.get("error_category"),
                 sql=response.get("sql_attempted"),
-                metadata=response.get("metadata", {})
+                metadata=response.get("metadata", {}),
+                trace_id=response.get("trace_id")
             )
             
     except Exception as e:
@@ -989,7 +983,7 @@ def process_query(
             message=f"Processing failed: {str(e)}",
             progress=0.0
         ))
-        return QueryResult(success=False, error=str(e))
+        return QueryResult(success=False, error=str(e), trace_id=response.get("trace_id"))
 
 
 def submit_feedback(
