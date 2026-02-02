@@ -1,8 +1,11 @@
 import logging
 from typing import List, Dict, Any
+from langfuse import observe
+from langfuse import Langfuse
 
 from ...kg.manager.kg_manager import KGManager
 from ...openai_client import OpenAIClient
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +16,18 @@ class VectorSearchTool:
         self.kg_manager = kg_manager
         self.openai_client = openai_client
         
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="tool_vector_search_tables",
+        as_type="span"
+    )  
     def search_tables(
         self,
         kg_id: str,
@@ -22,13 +37,22 @@ class VectorSearchTool:
         """
             Search for relevant tables using vector similarity.
         """
+        self.langfuse.update_current_span(
+            input={
+                "kg_id": kg_id,
+                "k": k
+            },
+            metadata={
+                "embedding_dim": len(query_embedding)
+            }
+        )
+        
         logger.info(f"Vector search for query. (K={k})")
         
         try:
             # Get Chroma collection for this KG
             collection = self.kg_manager.get_vector_collection(kg_id)
-            
-            
+
             # Search for similar tables
             results = self.kg_manager.vector_store.search_tables(
                 collection,
@@ -57,6 +81,17 @@ class VectorSearchTool:
                     f"(domain: {result['business_domain']}, "
                     f"score: {result['similarity_score']:.3f})"
                 )
+                
+            self.langfuse.update_current_span(
+                output={
+                    "results_count": len(formatted_results),
+                    "top_table": formatted_results[0]["table_name"] if formatted_results else None,
+                    "top_similarity_score": formatted_results[0]["similarity_score"] if formatted_results else None
+                },
+                metadata={
+                    "avg_similarity": sum(r["similarity_score"] for r in formatted_results) / len(formatted_results) if formatted_results else 0
+                }
+            )
                 
             return formatted_results
             

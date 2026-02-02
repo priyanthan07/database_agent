@@ -2,11 +2,15 @@ import logging
 import time
 from typing import Dict, Any
 from pydantic import BaseModel, Field
+from langfuse import observe
+from langfuse import Langfuse
 
 from .base_agent import BaseAgent
 from .tools.query_memory_tool import QueryMemoryTool
 from .tools.sql_validation_tool import SQLValidationTool
 from ..orchestration.agent_state import AgentState
+from config.settings import Settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +37,39 @@ class SQLGeneratorAgent(BaseAgent):
         # Initialize tools
         self.query_memory = QueryMemoryTool(memory_repository, openai_client)
         self.sql_validator = SQLValidationTool()
+        
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
     
+    @observe(
+        name="agent_2_sql_generator",
+        as_type="span",
+        capture_input=False,
+        capture_output=False
+    )
     def process(self, state: AgentState) -> AgentState:
         """Main processing logic for SQL generation"""
+        
+        self.langfuse.update_current_span(
+            input={
+                "user_query": state.user_query,
+                "refined_query": state.refined_query,
+                "final_tables": state.final_tables,
+                "retry_count": state.retry_count,
+                "has_sql_lessons": bool(state.sql_lessons)
+            },
+            metadata={
+                "kg_id": str(state.kg_id),
+                "sql_lessons_length": len(state.sql_lessons or ""),
+                "table_contexts_count": len(state.table_contexts)
+            }
+        )
+        
         self.log_start(state)
         start_time = time.time()
         
@@ -97,6 +131,19 @@ class SQLGeneratorAgent(BaseAgent):
             
             # Record timing
             state.sql_generation_time_ms = int((time.time() - start_time) * 1000)
+            
+            self.langfuse.update_current_span(
+                output={
+                    "generated_sql": state.generated_sql[:200] if state.generated_sql else None,
+                    "confidence_score": state.confidence_score,
+                    "route_to_agent": state.route_to_agent
+                },
+                metadata={
+                    "sql_generation_time_ms": state.sql_generation_time_ms,
+                    "similar_queries_found": len(state.similar_past_queries),
+                    "sql_length": len(state.generated_sql or "")
+                }
+            )
             
             self.log_end(state, success=True)
             return state

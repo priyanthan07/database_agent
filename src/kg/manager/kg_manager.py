@@ -1,9 +1,12 @@
 import logging
 from typing import Optional
 from uuid import UUID
+from langfuse import observe
+from langfuse import Langfuse
 
 from ..storage import KGRepository, VectorStore
 from ..models import KnowledgeGraph
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +16,18 @@ class KGManager:
         self.vector_store = VectorStore(chroma_persist_dir)
         self.loaded_kgs = {}
         
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="kg_manager_load_kg",
+        as_type="span"
+    )   
     def load_kg(self, kg_id: UUID) -> Optional[KnowledgeGraph]:
         """Load KG from PostgreSQL into memory"""
         
@@ -20,6 +35,15 @@ class KGManager:
         
         if kg_id_str in self.loaded_kgs:
             logger.info(f"Returning cached KG: {kg_id}")
+            
+            self.langfuse.update_current_span(
+                metadata={"cache_hit": True},
+                output={
+                    "kg_id": kg_id_str,
+                    "tables_count": len(self.loaded_kgs[kg_id_str].tables)
+                }
+            )
+            
             self._ensure_vector_store_ready(kg_id_str)
             return self.loaded_kgs[kg_id_str]
         
@@ -36,6 +60,16 @@ class KGManager:
             # Cache it
             self.loaded_kgs[kg_id_str] = kg
             logger.info(f"Loaded and cached KG: {kg_id}")
+            
+            self.langfuse.update_current_span(
+                metadata={"cache_hit": False},
+                output={
+                    "kg_id": kg_id_str,
+                    "tables_count": len(kg.tables),
+                    "relationships_count": len(kg.relationships),
+                    "vector_store_ready": vector_ready
+                }
+            )
             
         return kg
     

@@ -2,7 +2,11 @@ import logging
 import re
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
+from langfuse import observe
+from langfuse import Langfuse
+
 from .agent_state import AgentState
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +53,19 @@ class ErrorRouter:
             Initialize ErrorRouter with OpenAI client.
         """
         self.openai_client = openai_client
-    
+        
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+        
+    @observe(
+        name="er_classify_error",
+        as_type="span"
+    )
     def classify_error(
         self,
         error_message: str,
@@ -108,6 +124,14 @@ class ErrorRouter:
                 temperature=0.0
             )
             
+            self.langfuse.update_current_span(
+                output={
+                    "category": result.error_category,
+                    "sub_category": result.sub_category,
+                    "confidence": result.confidence
+                }
+            )
+            
             # Return the classification result
             logger.info(f"Error classified as: {result.error_category} / {result.sub_category}")
             
@@ -139,6 +163,10 @@ class ErrorRouter:
                 "error_message": error_message
             }
     
+    @observe(
+        name="er_route_error",
+        as_type="span"
+    )
     def route_error(
         self,
         classification: Dict[str, Any],
@@ -147,6 +175,15 @@ class ErrorRouter:
         """
             Determine which agent should handle the error.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "error_category": classification.get("category"),
+                "sub_category": classification.get("sub_category"),
+                "retry_count": state.retry_count
+            }
+        )
+        
         logger.info(f"Determining error routing using GPT-4")
         
         # Prepare error history
@@ -202,6 +239,16 @@ class ErrorRouter:
             logger.info(f"Routing decision: {result.route_to}")
             logger.info(f"Reasoning: {result.reasoning}")
             logger.info(f"Priority action: {result.priority_action}")
+            
+            self.langfuse.update_current_span(
+                output={
+                    "route_to": result.route_to,
+                    "confidence": result.confidence
+                },
+                metadata={
+                    "priority_action": result.priority_action
+                }
+            )
             
             # Validate routing decision
             if result.route_to not in ["agent_1", "agent_2", "complete"]:

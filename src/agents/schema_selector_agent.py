@@ -1,12 +1,15 @@
 import logging
 import time
 from typing import Dict, Any
+from langfuse import observe
+from langfuse import Langfuse
 
 from .base_agent import BaseAgent
 from .tools.vector_search_tool import VectorSearchTool
 from .tools.llm_filter_tool import LLMFilterTool
 from .tools.graph_traversal_tool import GraphTraversalTool
 from ..orchestration.agent_state import AgentState
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +31,36 @@ class SchemaSelectorAgent(BaseAgent):
         self.vector_search = VectorSearchTool(kg_manager, openai_client)
         self.llm_filter = LLMFilterTool(openai_client)
         self.graph_traversal = GraphTraversalTool()
+        self.setting = Settings()
         
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="agent_1_schema_selector",
+        as_type="span",
+        capture_input=False,
+        capture_output=False
+    )
     def process(self, state: AgentState) -> AgentState:
         """
             Main processing logic for schema selection
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "user_query": state.user_query,
+                "retry_count": state.retry_count,
+                "has_schema_lessons": bool(state.schema_lessons)
+            },
+            metadata={
+                "kg_id": str(state.kg_id),
+                "schema_lessons_length": len(state.schema_lessons or "")
+            }
+        )
         
         self.log_start(state)
         start_time = time.time()
@@ -149,6 +177,21 @@ class SchemaSelectorAgent(BaseAgent):
             
             # Set next agent
             state.route_to_agent = "agent_2"
+            
+            self.langfuse.update_current_span(
+                output={
+                    "selected_tables": state.selected_tables,
+                    "bridging_tables": state.bridging_tables,
+                    "enrichment_tables": state.enrichment_tables,
+                    "final_tables": state.final_tables,
+                    "confidence_score": state.confidence_score
+                },
+                metadata={
+                    "schema_retrieval_time_ms": state.schema_retrieval_time_ms,
+                    "vector_results_count": len(state.vector_search_results),
+                    "final_tables_count": len(state.final_tables)
+                }
+            )
             
             self.log_end(state, success=True)
             return state

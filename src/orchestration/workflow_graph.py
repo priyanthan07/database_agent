@@ -1,11 +1,14 @@
 import logging
 from typing import Dict, Any
 from langgraph.graph import StateGraph, END
+from langfuse import observe
+from langfuse import Langfuse
 
 from .agent_state import AgentState
 from ..agents.schema_selector_agent import SchemaSelectorAgent
 from ..agents.sql_generator_agent import SQLGeneratorAgent
 from ..agents.executor_validator_agent import ExecutorValidatorAgent
+from config.settings import Settings
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,14 @@ class AgentWorkflow:
         self.source_db_conn = source_db_conn
         self.memory_repository = memory_repository
         self.error_summary_manager = error_summary_manager
+        
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
         
         # Initialize agents
         self.agent_1 = SchemaSelectorAgent(
@@ -88,16 +99,19 @@ class AgentWorkflow:
         
         return workflow.compile()
     
+    @observe(name="workflow_node_agent_1", as_type="span")
     def _run_agent_1(self, state: AgentState) -> AgentState:
         """Execute Agent 1 (Schema Selector)"""
         logger.info("Executing Agent 1: Schema Selector")
         return self.agent_1.process(state)
     
+    @observe(name="workflow_node_agent_2", as_type="span")
     def _run_agent_2(self, state: AgentState) -> AgentState:
         """Execute Agent 2 (SQL Generator)"""
         logger.info("Executing Agent 2: SQL Generator")
         return self.agent_2.process(state)
     
+    @observe(name="workflow_node_agent_3", as_type="span")
     def _run_agent_3(self, state: AgentState) -> AgentState:
         """Execute Agent 3 (Executor & Validator)"""
         logger.info("Executing Agent 3: Executor & Validator")
@@ -124,10 +138,23 @@ class AgentWorkflow:
             logger.info("Workflow complete")
             return "complete"
     
+    @observe(
+        name="langgraph_workflow_execute",
+        as_type="span"
+    )
     def execute(self, initial_state: AgentState) -> AgentState:
         """
             Execute the complete workflow.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "user_query": initial_state.user_query,
+                "kg_id": str(initial_state.kg_id),
+                "has_clarifications": bool(initial_state.clarifications_provided)
+            }
+        )
+        
         logger.info("STARTING AGENT WORKFLOW")
         logger.info(f"User Query: {initial_state.user_query}")
         logger.info(f"KG ID: {initial_state.kg_id}")
@@ -149,6 +176,19 @@ class AgentWorkflow:
                 logger.info("Note: Success was achieved after retry (lesson extracted)")
                 
             logger.info(f"Total Time: {final_state.total_time_ms}ms")
+            
+            self.langfuse.update_current_span(
+                output={
+                    "execution_success": final_state.execution_success,
+                    "retry_count": final_state.retry_count,
+                    "final_route": final_state.route_to_agent
+                },
+                metadata={
+                    "total_time_ms": final_state.total_time_ms,
+                    "iterations": final_state.retry_count + 1,
+                    "is_retry_success": final_state.is_retry_success
+                }
+            )
             
             return final_state
             

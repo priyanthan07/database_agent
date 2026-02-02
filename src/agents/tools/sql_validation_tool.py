@@ -4,12 +4,29 @@ from typing import Dict, List, Optional, Any
 import sqlparse
 from sqlparse.sql import IdentifierList, Identifier, Where, Function
 from sqlparse.tokens import Keyword, DML
+from langfuse import observe
+from langfuse import Langfuse
+
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
 class SQLValidationTool:
     """Validates SQL syntax and structure"""
     
+    def __init__(self):
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="tool_validate_sql_query",
+        as_type="span"
+    ) 
     def validate_sql(
         self,
         sql: str,
@@ -19,6 +36,15 @@ class SQLValidationTool:
         """
             Validate SQL query syntax and structure.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "sql": sql,
+                "expected_tables": expected_tables,
+                "kg_context": kg_context
+            }
+        )
+        
         logger.info("Validating SQL query")
         
         result = {
@@ -35,6 +61,13 @@ class SQLValidationTool:
             if not parsed:
                 result["is_valid"] = False
                 result["errors"].append("Failed to parse SQL query")
+                
+                self.langfuse.update_current_span(
+                    output={
+                        "result": result
+                    }
+                )
+                
                 return result
             
             statement = parsed[0]
@@ -79,6 +112,12 @@ class SQLValidationTool:
             logger.error(f"SQL validation failed: {e}")
             result["is_valid"] = False
             result["errors"].append(f"Validation error: {str(e)}")
+            
+        self.langfuse.update_current_span(
+                    output={
+                        "result": result
+                    }
+                )
         
         return result
     

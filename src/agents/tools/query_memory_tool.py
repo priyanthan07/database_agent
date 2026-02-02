@@ -1,8 +1,11 @@
 import logging
 from typing import List, Dict, Any, Optional
+from langfuse import observe
+from langfuse import Langfuse
 
 from ...openai_client import OpenAIClient
 from ...memory.query_memory_repository import QueryMemoryRepository
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +19,18 @@ class QueryMemoryTool:
     ):
         self.memory_repository = memory_repository
         self.openai_client = openai_client
+        self.setting = Settings()
         
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="tool_get_similar_queries",
+        as_type="span"
+    )   
     def get_similar_queries(
         self,
         kg_id: str,
@@ -27,6 +41,15 @@ class QueryMemoryTool:
         """   
             Retrieve similar successful queries for few-shot learning.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "kg_id": kg_id,
+                "limit": limit,
+                "only_successful": only_successful
+            }
+        )
+        
         logger.info(f"Searching for {limit} similar past queries")
         
         try:
@@ -50,6 +73,13 @@ class QueryMemoryTool:
                     )
             else:
                 logger.info("No similar past queries found")
+            
+            self.langfuse.update_current_span(
+                output={
+                    "queries_found": len(similar_queries),
+                    "avg_similarity": sum(q.get("similarity", 0) for q in similar_queries) / len(similar_queries) if similar_queries else 0
+                }
+            )
             
             return similar_queries
             

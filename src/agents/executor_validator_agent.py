@@ -3,10 +3,13 @@ import time
 import psycopg2
 from typing import Dict, Any
 from psycopg2.extras import RealDictCursor
+from langfuse import observe
+from langfuse import Langfuse
 
 from .base_agent import BaseAgent
 from ..orchestration.agent_state import AgentState
 from ..orchestration.error_router import ErrorRouter
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +30,39 @@ class ExecutorValidatorAgent(BaseAgent):
         self.error_summary_manager = error_summary_manager
         self.error_router = ErrorRouter(openai_client=openai_client)
         
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+        
         # SQL execution settings
         self.timeout_seconds = 30
         self.max_rows = 10000
-        
+    
+    @observe(
+        name="agent_3_executor_validator",
+        as_type="span",
+        capture_input=False,
+        capture_output=False
+    )
     def process(self, state: AgentState) -> AgentState:
         """Main processing logic for execution and validation"""
+        
+        self.langfuse.update_current_span(
+            input={
+                "generated_sql": state.generated_sql[:200] if state.generated_sql else None,
+                "retry_count": state.retry_count,
+                "final_tables": state.final_tables
+            },
+            metadata={
+                "kg_id": str(state.kg_id),
+                "has_previous_error": bool(state.error_history)
+            }
+        )
+        
         self.log_start(state)
         start_time = time.time()
         
@@ -152,6 +182,21 @@ class ExecutorValidatorAgent(BaseAgent):
                     
                     # Store error pattern even during retries
                     self._store_error_pattern(state, error_classification)
+            
+            self.langfuse.update_current_span(
+                output={
+                    "execution_success": state.execution_success,
+                    "route_to_agent": state.route_to_agent,
+                    "error_category": state.error_category,
+                    "retry_count": state.retry_count,
+                    "row_count": len(state.execution_result) if state.execution_result else 0
+                },
+                metadata={
+                    "execution_time_ms": state.execution_time_ms,
+                    "is_retry_success": state.is_retry_success,
+                    "error_history_count": len(state.error_history)
+                }
+            )
             
             self.log_end(state, success=state.execution_success)
             return state

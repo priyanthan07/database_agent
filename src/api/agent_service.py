@@ -14,7 +14,7 @@ from ..memory.error_summary_manager import ErrorSummaryManager
 from ..orchestration.agent_state import AgentState
 from ..orchestration.workflow_graph import AgentWorkflow
 from ..agents.tools.clarification_tool import ClarificationTool
-from ...config.settings import Settings
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 

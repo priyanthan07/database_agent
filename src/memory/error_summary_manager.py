@@ -5,6 +5,10 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, Field
 from psycopg2.extras import RealDictCursor
+from langfuse import observe
+from langfuse import Langfuse
+
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +38,18 @@ class ErrorSummaryManager:
         self._cache: Dict[str, Dict[str, Any]] = {}
         self._compression_lock = threading.Lock()
         
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="em_get_error_summary",
+        as_type="span"
+    )
     def get_summary(self, kg_id: UUID) -> Dict[str, Any]:
         
         kg_id_str = str(kg_id)
@@ -41,6 +57,15 @@ class ErrorSummaryManager:
         # Check cache first
         if kg_id_str in self._cache:
             logger.debug(f"Returning cached summary for KG: {kg_id_str}")
+            
+            self.langfuse.update_current_span(
+                metadata={"cache_hit": True},
+                output={
+                    "lesson_count": self._cache[kg_id_str].get("lesson_count", 0),
+                    "word_count": self._cache[kg_id_str].get("word_count", 0)
+                }
+            )
+            
             return self._cache[kg_id_str]
         
         # Load from database
@@ -50,11 +75,24 @@ class ErrorSummaryManager:
             self._cache[kg_id_str] = summary
             logger.info(f"Loaded error summary for KG: {kg_id_str} ({summary.get('lesson_count', 0)} lessons)")
             
+            self.langfuse.update_current_span(
+                metadata={"cache_hit": False},
+                output={
+                    "lesson_count": summary.get("lesson_count", 0),
+                    "word_count": summary.get("word_count", 0)
+                }
+            )
+            
         else:
             # Create empty summary if not exists
             summary = self._create_empty_summary(kg_id)
             self._cache[kg_id_str] = summary
             logger.info(f"Created empty error summary for KG: {kg_id_str}")
+            
+            self.langfuse.update_current_span(
+                metadata={"cache_hit": False, "created_new": True},
+                output={"lesson_count": 0, "word_count": 0}
+            )
             
         return summary
     
@@ -121,7 +159,11 @@ class ErrorSummaryManager:
                 "compression_threshold": self.DEFAULT_COMPRESSION_THRESHOLD,
                 "version": 1
             }
-            
+    
+    @observe(
+        name="em_add_lesson_from_error",
+        as_type="span"
+    )    
     def add_lesson_from_error(
         self,
         kg_id: UUID,
@@ -135,6 +177,14 @@ class ErrorSummaryManager:
             Extract lesson from error and add to summary.
             Triggers compression if threshold reached.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "kg_id": str(kg_id),
+                "error_category": error_category,
+                "affected_tables": affected_tables
+            }
+        )
         
         logger.info(f"Extracting lesson from error: {error_category}")
         
@@ -162,6 +212,13 @@ class ErrorSummaryManager:
             if success:
                 logger.info(f"Added {lesson['lesson_type']} lesson: {lesson['lesson_rule'][:50]}...")
                 
+                self.langfuse.update_current_span(
+                    output={
+                        "lesson_type": lesson["lesson_type"],
+                        "lesson_added": True
+                    }
+                )
+                
                 # Check if compression needed (async)
                 self._check_and_trigger_compression(kg_id)
             
@@ -170,7 +227,11 @@ class ErrorSummaryManager:
         except Exception as e:
             logger.error(f"Failed to add lesson from error: {e}")
             return False
-        
+    
+    @observe(
+        name="em_add_lesson_from_feedback",
+        as_type="span"
+    ) 
     def add_lesson_from_feedback(
         self,
         kg_id: UUID,
@@ -182,6 +243,16 @@ class ErrorSummaryManager:
         """
             Extract lesson from user feedback on a query.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "kg_id": str(kg_id),
+                "feedback": feedback[:100],
+                "rating": rating,
+                "has_error_patterns": bool(error_patterns)
+            }
+        )
+        
         logger.info(f"Extracting lesson from feedback: '{feedback[:50]}...'")
         
         if error_patterns:
@@ -225,7 +296,19 @@ class ErrorSummaryManager:
             
             if success:
                 logger.info(f"Added {lesson['lesson_type']} lesson from feedback: {lesson['lesson_rule'][:50]}...")
+
+                self.langfuse.update_current_span(
+                    output={"lesson_extracted": True}
+                )
             
+            else:
+                logger.info("No lesson extracted from feedback")
+                
+                # Log output
+                self.langfuse.update_current_span(
+                    output={"lesson_extracted": False}
+                )
+                
             return success
             
         except Exception as e:

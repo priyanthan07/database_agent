@@ -1,14 +1,30 @@
 import logging
 from typing import List, Set, Dict
 from collections import defaultdict, deque
+from langfuse import observe
+from langfuse import Langfuse
 
 from ...kg.models import KnowledgeGraph
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
 class GraphTraversalTool:
     """Traverses KG relationship graph to find connection paths between tables"""
     
+    def __init__(self):
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="tool_find_bridging_tables",
+        as_type="span"
+    )
     def find_bridging_tables(
         self,
         kg: KnowledgeGraph,
@@ -17,6 +33,10 @@ class GraphTraversalTool:
         """
             Find bridging tables needed to connect selected tables.
         """
+        
+        self.langfuse.update_current_span(
+            input={"selected_tables": selected_tables}
+        )
         
         if len(selected_tables) <= 1:
             logger.info("Only one table selected, no bridging needed")
@@ -58,8 +78,20 @@ class GraphTraversalTool:
         else:
             logger.info("No bridging tables needed")
         
+        self.langfuse.update_current_span(
+            output={
+                "bridging_tables": bridging_list,
+                "count": len(bridging_list)
+            }
+        )
+        
         return bridging_list
     
+    
+    @observe(
+        name="tool_find_enrichment_tables",
+        as_type="span"
+    )
     def find_enrichment_tables(
         self,
         kg: KnowledgeGraph,
@@ -69,6 +101,11 @@ class GraphTraversalTool:
         """
             Find enrichment tables that provide human-readable values for foreign keys.
         """
+        
+        self.langfuse.update_current_span(
+            input={"selected_tables": selected_tables}
+        )
+        
         logger.info(f"Finding enrichment tables for: {selected_tables}")
         enrichment_tables = set()
         selected_set = set(selected_tables)
@@ -107,6 +144,13 @@ class GraphTraversalTool:
             logger.info(f"Enrichment tables found: {enrichment_list}")
         else:
             logger.info("No enrichment tables needed")
+            
+        self.langfuse.update_current_span(
+            output={
+                "enrichment_tables": enrichment_list,
+                "count": len(enrichment_list)
+            }
+        )
         
         return enrichment_list
         

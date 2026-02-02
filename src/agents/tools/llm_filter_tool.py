@@ -1,8 +1,11 @@
 import logging
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
+from langfuse import observe
+from langfuse import Langfuse
 
 from ...openai_client import OpenAIClient
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,18 @@ class LLMFilterTool:
     
     def __init__(self, openai_client: OpenAIClient):
         self.openai_client = openai_client
+        self.setting = Settings()
         
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="tool_llm_filter_tables",
+        as_type="span"
+    )  
     def filter_tables(
         self,
         user_query: str,
@@ -27,6 +41,15 @@ class LLMFilterTool:
         schema_lessons: Optional[str] = None
     ) -> Dict[str, Any]:
         """Filter candidate tables using LLM reasoning."""
+        
+        self.langfuse.update_current_span(
+            input={
+                "user_query": user_query,
+                "candidate_count": len(candidate_tables),
+                "max_tables": max_tables,
+                "has_schema_lessons": bool(schema_lessons)
+            }
+        )
         
         logger.info(f"Filtering {len(candidate_tables)} candidate tables")
         
@@ -89,6 +112,17 @@ class LLMFilterTool:
             logger.info(f"Reasoning: {result.reasoning}...")
             logger.info(f"Confidence: {result.confidence}")
             logger.info(f"Selected: {', '.join(result.selected_tables)}")
+            
+            self.langfuse.update_current_span(
+                output={
+                    "selected_count": len(result.selected_tables),
+                    "selected_tables": result.selected_tables,
+                    "confidence": result.confidence
+                },
+                metadata={
+                    "reasoning_length": len(result.reasoning)
+                }
+            )
             
             return {
                 "selected_tables": result.selected_tables,

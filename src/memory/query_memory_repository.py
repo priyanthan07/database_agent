@@ -1,9 +1,14 @@
 import logging
 import json
+import time
 import numpy as np
 from typing import List, Dict, Any, Optional
 from uuid import UUID, uuid4
 from psycopg2.extras import RealDictCursor, execute_values
+from langfuse import observe
+from langfuse import Langfuse
+
+from config.settings import Settings
 
 
 logger = logging.getLogger(__name__)
@@ -15,11 +20,36 @@ class QueryMemoryRepository:
     def __init__(self, kg_conn):
         self.conn = kg_conn
         
+        self.setting = Settings()
+        
+        self.langfuse = Langfuse(
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
+        )
+    
+    @observe(
+        name="qm_insert_query_log",
+        as_type="span"
+    ) 
     def insert_query_log(self, query_data: Dict[str, Any]) -> bool:
         """
             Insert query log into kg_query_log table.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "execution_success": query_data.get("execution_success"),
+                "has_embedding": bool(query_data.get("query_embedding"))
+            },
+            metadata={
+                "kg_id": query_data.get("kg_id")
+            }
+        )
+        
         logger.info("Inserting query log")
+        
+        start_time = time.time()
         
         # IMPORTANT: Rollback any previous failed transactions
         try:
@@ -77,6 +107,14 @@ class QueryMemoryRepository:
                 if result:
                     returned_id = str(result[0])
                     logger.info(f"Query log inserted successfully with id: {returned_id}")
+                    
+                    execution_time_ms = int((time.time() - start_time) * 1000)
+                    
+                    self.langfuse.update_current_span(
+                        output={"query_log_id": returned_id},
+                        metadata={"insert_time_ms": execution_time_ms}
+                    )
+                    
                     return returned_id
                 return None
                 
@@ -268,7 +306,10 @@ class QueryMemoryRepository:
             logger.error(f"Failed to retrieve error patterns: {e}")
             return []
         
-        
+    @observe(
+        name="qm_search_similar_queries_pgvector",
+        as_type="span"
+    )  
     def search_similar_queries(
         self,
         kg_id: str,
@@ -279,6 +320,18 @@ class QueryMemoryRepository:
         """
             Search for similar queries using vector similarity.
         """
+        
+        self.langfuse.update_current_span(
+            input={
+                "kg_id": kg_id,
+                "limit": limit,
+                "only_successful": only_successful
+            },
+            metadata={
+                "embedding_dim": len(query_embedding)
+            }
+        )
+        
         logger.info(f"Searching for similar queries (limit={limit})")
         
         # Convert embedding list to PostgreSQL vector format
@@ -334,6 +387,17 @@ class QueryMemoryRepository:
                         f"  {i}. '{query_result['user_question'][:60]}...' "
                         f"(similarity: {query_result['similarity']:.3f})"
                     )
+                
+                self.langfuse.update_current_span(
+                    output={
+                        "results_count": len(formatted_results),
+                        "avg_similarity": sum(q["similarity"] for q in formatted_results) / len(formatted_results) if formatted_results else 0
+                    },
+                    metadata={
+                        "db_query_time_ms": execution_time_ms,
+                        "using_pgvector": True
+                    }
+                )
                 
                 return formatted_results
                 
