@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 from langfuse import Langfuse
 import os
-from dotenv import load_dotenv
 from langfuse import observe
 
 from ..kg.manager.kg_manager import KGManager
@@ -15,10 +14,10 @@ from ..memory.error_summary_manager import ErrorSummaryManager
 from ..orchestration.agent_state import AgentState
 from ..orchestration.workflow_graph import AgentWorkflow
 from ..agents.tools.clarification_tool import ClarificationTool
+from ...config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()
 
 class DecisionFormat(BaseModel):
     should_extract_lesson: bool = Field(description="Final decision to extract the lesson")
@@ -40,6 +39,7 @@ class AgentService:
         self.openai_client = openai_client
         self.source_db_conn = source_db_conn
         self.kg_conn = kg_conn
+        self.setting = Settings()
         
         # Initialize components
         self.memory_repository = QueryMemoryRepository(kg_conn)
@@ -59,9 +59,9 @@ class AgentService:
         
         # Initialize Langfuse client
         self.langfuse = Langfuse(
-            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-            host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+            public_key=self.setting.LANGFUSE_PUBLIC_KEY,
+            secret_key=self.setting.LANGFUSE_SECRET_KEY,
+            host=self.setting.LANGFUSE_HOST
         )
     
     @observe(name="query_processing")        
@@ -204,7 +204,7 @@ class AgentService:
                 }
             )
             
-            self.langfuse.flush()
+            
             
             logger.info(f"Query processing complete in {total_time_ms}ms")
             
