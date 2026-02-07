@@ -537,9 +537,12 @@ def render_chat_message(msg: Dict, index: int):
 
 
 def render_clarification_ui():
-    """Render the clarification MCQ interface"""
+    """Render the clarification interface - supports multiple types"""
     clarification = st.session_state.pending_clarification
+    clarification_type = clarification.get("clarification_type", "mcq")
+    trigger_phase = clarification.get("trigger_phase", "pre_schema")
     
+    # Header
     st.markdown("""
     <div class="clarification-card">
         <h4>🤔 Clarification Needed</h4>
@@ -548,25 +551,79 @@ def render_clarification_ui():
     
     st.markdown(f"**{clarification['question']}**")
     
-    if clarification.get("reasoning"):
-        with st.expander("Why this question?", expanded=False):
-            st.caption(clarification["reasoning"])
+    # ── Suggestion type: show what system will do, let user accept or override ──
+    if clarification_type == "suggestion":
+        suggested_action = clarification.get("suggested_action", "")
+        
+        if suggested_action:
+            st.info(f"💡 **Suggested approach:** {suggested_action}")
+        
+        col1, col2, col3 = st.columns([1, 1, 4])
+        
+        with col1:
+            if st.button("✓ Proceed", type="primary", width='stretch'):
+                # Auto-proceed with suggestion
+                process_with_clarification(suggested_action)
+        
+        with col2:
+            if st.button("✗ Cancel", width='stretch'):
+                st.session_state.pending_clarification = None
+                st.rerun()
+        
+        # Optional: let user type alternative
+        alt_input = st.text_input(
+            "Or specify what you mean:",
+            key="suggestion_alt_input",
+            placeholder="Type your own interpretation..."
+        )
+        if alt_input and st.button("Submit Alternative"):
+            process_with_clarification(alt_input)
     
-    options = clarification.get("options", [])
+    # ── Yes/No type ──
+    elif clarification_type == "yes_no":
+        proposed = clarification.get("proposed_interpretation", "")
+        
+        if proposed:
+            st.markdown(f"*Proposed interpretation: {proposed}*")
+        
+        col1, col2, col3 = st.columns([1, 1, 4])
+        
+        with col1:
+            if st.button("Yes", type="primary", width='stretch'):
+                process_with_clarification("Yes")
+        
+        with col2:
+            if st.button("No", width='stretch'):
+                # Show text input for alternative
+                st.session_state["show_alt_input"] = True
+                st.rerun()
+        
+        if st.session_state.get("show_alt_input"):
+            alt_input = st.text_input(
+                "What did you mean?",
+                key="yesno_alt_input"
+            )
+            if alt_input and st.button("Submit"):
+                if "show_alt_input" in st.session_state:
+                    del st.session_state["show_alt_input"]
+                process_with_clarification(alt_input)
     
-    if options:
-        selected = st.radio(
-            "Select an option:",
-            options=options,
-            key="clarification_selection",
-            label_visibility="collapsed"
+    # ── Open text type ──
+    elif clarification_type == "open_text":
+        text_input = st.text_input(
+            "Your response:",
+            key="open_text_input",
+            placeholder="Please specify..."
         )
         
         col1, col2, col3 = st.columns([1, 1, 4])
         
         with col1:
             if st.button("Submit", type="primary", width='stretch'):
-                process_with_clarification(selected)
+                if text_input and text_input.strip():
+                    process_with_clarification(text_input.strip())
+                else:
+                    st.warning("Please enter a response")
         
         with col2:
             if st.button("Skip", width='stretch'):
@@ -575,6 +632,44 @@ def render_clarification_ui():
                 if original_query:
                     process_user_query(original_query, force=True)
                 st.rerun()
+    
+    # ── MCQ type (original behavior) ──
+    elif clarification_type == "mcq":
+        options = clarification.get("options", [])
+        
+        if options:
+            selected = st.radio(
+                "Select an option:",
+                options=options,
+                key="clarification_selection",
+                label_visibility="collapsed"
+            )
+            
+            col1, col2, col3 = st.columns([1, 1, 4])
+            
+            with col1:
+                if st.button("Submit", type="primary", width='stretch'):
+                    process_with_clarification(selected)
+            
+            with col2:
+                if st.button("Skip", width='stretch'):
+                    st.session_state.pending_clarification = None
+                    original_query = st.session_state.messages[-1]["content"] if st.session_state.messages else ""
+                    if original_query:
+                        process_user_query(original_query, force=True)
+                    st.rerun()
+    
+    # ── Fallback ──
+    else:
+        options = clarification.get("options", [])
+        if options:
+            selected = st.radio("Select:", options=options, key="fallback_selection")
+            if st.button("Submit", type="primary"):
+                process_with_clarification(selected)
+        else:
+            text_input = st.text_input("Your response:", key="fallback_input")
+            if text_input and st.button("Submit", type="primary"):
+                process_with_clarification(text_input)
 
 
 def render_feedback_ui(msg_index: int, msg: Dict):
@@ -754,13 +849,15 @@ def process_user_query(user_query: str, force: bool = False, clarifications: Dic
             elif result.needs_clarification and not force:
                 clarification_data = result.clarification_request
                 st.session_state.pending_clarification = {
+                    "clarification_type": clarification_data.get("clarification_type", "mcq"),
                     "question": clarification_data.get("question", "Please clarify your query"),
                     "options": clarification_data.get("options", []),
+                    "suggested_action": clarification_data.get("suggested_action"),
+                    "proposed_interpretation": clarification_data.get("proposed_interpretation"),
                     "ambiguity": clarification_data.get("ambiguity", ""),
-                    "reasoning": clarification_data.get("reasoning", ""),
+                    "trigger_phase": clarification_data.get("trigger_phase", "pre_schema"),
                     "original_query": user_query
                 }
-                response_msg["content"] = f"I need clarification to better understand your query."
                 
             else:
                 response_msg["content"] = f"Query failed: {result.error}"

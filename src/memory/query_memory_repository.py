@@ -321,6 +321,8 @@ class QueryMemoryRepository:
             Search for similar queries using vector similarity.
         """
         
+        start_time = time.time()
+        
         self.langfuse.update_current_span(
             input={
                 "kg_id": kg_id,
@@ -394,11 +396,10 @@ class QueryMemoryRepository:
                         "avg_similarity": sum(q["similarity"] for q in formatted_results) / len(formatted_results) if formatted_results else 0
                     },
                     metadata={
-                        "db_query_time_ms": execution_time_ms,
+                        "db_query_time_ms": int((time.time() - start_time) * 1000),
                         "using_pgvector": True
                     }
                 )
-                
                 return formatted_results
                 
         except Exception as e:

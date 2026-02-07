@@ -104,29 +104,29 @@ class AgentService:
             
             # Check for ambiguities (if no clarifications provided)
             if not clarifications:
-                ambiguity_result = self.clarification_tool.detect_ambiguities(user_query)
+                phase_a_result = self.clarification_tool.phase_a_intent_check(user_query)
                 
-                if ambiguity_result["has_ambiguity"]:
-                    logger.info("Ambiguities detected, requesting clarification")
+                if phase_a_result["needs_clarification"]:
+                    logger.info("Phase A: Clarification needed")
                     
-                    mcq = self.clarification_tool.generate_mcq(
-                        user_query=user_query,
-                        ambiguities=ambiguity_result["ambiguities"]
-                    )
+                    clarification_req = phase_a_result["clarification_request"]
                     
                     self.langfuse.update_current_trace(
-                        output={"needs_clarification": True},
-                        metadata={"clarification_reason": ambiguity_result["reasoning"]}
+                        output={"needs_clarification": True, "phase": "A"},
+                        metadata={"clarification_reason": clarification_req.detected_ambiguity}
                     )
                     
                     return {
                         "success": False,
                         "needs_clarification": True,
                         "clarification_request": {
-                            "question": mcq.question,
-                            "options": mcq.options,
-                            "ambiguity": mcq.detected_ambiguity,
-                            "reasoning": ambiguity_result["reasoning"]
+                            "clarification_type": clarification_req.clarification_type,
+                            "question": clarification_req.question,
+                            "options": clarification_req.options,
+                            "suggested_action": clarification_req.suggested_action,
+                            "proposed_interpretation": clarification_req.proposed_interpretation,
+                            "ambiguity": clarification_req.detected_ambiguity,
+                            "trigger_phase": clarification_req.trigger_phase,
                         }
                     }
             
@@ -176,6 +176,31 @@ class AgentService:
             # Execute workflow
             final_state = self.workflow.execute(initial_state)
             
+            # Check if workflow paused for Phase B clarification
+            if final_state.needs_schema_clarification and final_state.schema_clarification_request:
+                logger.info("Phase B: Schema clarification needed — returning to user")
+                
+                clarification_req = final_state.schema_clarification_request
+                
+                self.langfuse.update_current_trace(
+                    output={"needs_clarification": True, "phase": "B"},
+                    metadata={"clarification_reason": clarification_req.detected_ambiguity}
+                )
+                
+                return {
+                    "success": False,
+                    "needs_clarification": True,
+                    "clarification_request": {
+                        "clarification_type": clarification_req.clarification_type,
+                        "question": clarification_req.question,
+                        "options": clarification_req.options,
+                        "suggested_action": clarification_req.suggested_action,
+                        "proposed_interpretation": clarification_req.proposed_interpretation,
+                        "ambiguity": clarification_req.detected_ambiguity,
+                        "trigger_phase": clarification_req.trigger_phase,
+                    }
+                }
+            
             # Calculate total time
             total_time_ms = int((time.time() - start_time) * 1000)
             final_state.total_time_ms = total_time_ms
@@ -204,8 +229,6 @@ class AgentService:
                 }
             )
             
-            
-            
             logger.info(f"Query processing complete in {total_time_ms}ms")
             
             return response
@@ -233,28 +256,8 @@ class AgentService:
         
         refined = user_query
         
-        # Simple substitution for common clarifications
         for question, answer in clarifications.items():
-            if "time period" in question.lower() or "month" in question.lower() or "year" in question.lower():
-                # Replace vague time reference with specific one
-                refined = refined.replace("last month", answer)
-                refined = refined.replace("this month", answer)
-                refined = refined.replace("last year", answer)
-                refined = refined.replace("this year", answer)
-                refined = refined.replace("recent", answer)
-                refined = refined.replace("recently", answer)
-            
-            elif "rank" in question.lower() or "metric" in question.lower():
-                # Add ranking criteria
-                refined += f" (ranked by {answer})"
-            
-            elif "threshold" in question.lower() or "value" in question.lower():
-                # Add threshold criteria
-                refined += f" (threshold: {answer})"
-                
-            else:
-                # Generic: append clarification
-                refined += f" ({answer})"
+            refined += f" ({answer})"
         
         logger.info(f"Refined query: '{refined}'")
         return refined
@@ -298,6 +301,7 @@ class AgentService:
                     }
                 }
             }
+            
     def submit_feedback(
         self,
         query_log_id: UUID,
@@ -475,3 +479,4 @@ class AgentService:
             fallback_decision = (rating is not None and rating <= 2) or len(feedback) > 50
             logger.info(f"Using fallback decision: {fallback_decision}")
             return fallback_decision
+        

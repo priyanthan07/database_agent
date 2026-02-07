@@ -8,6 +8,7 @@ from .agent_state import AgentState
 from ..agents.schema_selector_agent import SchemaSelectorAgent
 from ..agents.sql_generator_agent import SQLGeneratorAgent
 from ..agents.executor_validator_agent import ExecutorValidatorAgent
+from ..agents.tools.clarification_tool import ClarificationTool
 from config.settings import Settings
 
 
@@ -62,6 +63,9 @@ class AgentWorkflow:
             error_summary_manager=error_summary_manager
         )
         
+        # Initialize clarification tool for Phase B
+        self.clarification_tool = ClarificationTool(openai_client)
+        
         # Build workflow graph
         self.graph = self._build_graph()
         
@@ -73,6 +77,7 @@ class AgentWorkflow:
         
         # Add nodes (agents)
         workflow.add_node("agent_1", self._run_agent_1)
+        workflow.add_node("phase_b_check", self._run_phase_b_check)
         workflow.add_node("agent_2", self._run_agent_2)
         workflow.add_node("agent_3", self._run_agent_3)
         
@@ -80,10 +85,21 @@ class AgentWorkflow:
         # Start always goes to Agent 1
         workflow.set_entry_point("agent_1")
         
-        # Agent 1 → Agent 2 (always)
-        workflow.add_edge("agent_1", "agent_2")
+        # Agent 1 → Phase B Check
+        workflow.add_edge("agent_1", "phase_b_check")
         
-        # Agent 2 → Agent 3 (always)
+        # Phase B Check → Agent 2 OR halt (clarification needed)
+        workflow.add_conditional_edges(
+            "phase_b_check",
+            self._phase_b_routing_decision,
+            {
+                "agent_2": "agent_2",
+                "clarification_needed": END,  # Halt workflow, return to user
+                "complete": END,  # Agent 1 failed
+            }
+        )
+        
+        # Agent 2 → Agent 3
         workflow.add_edge("agent_2", "agent_3")
         
         # Agent 3 → Decision (retry or complete)
@@ -105,6 +121,77 @@ class AgentWorkflow:
         logger.info("Executing Agent 1: Schema Selector")
         return self.agent_1.process(state)
     
+    @observe(name="workflow_node_phase_b_check", as_type="span")
+    def _run_phase_b_check(self, state: AgentState) -> AgentState:
+        """
+            Execute Phase B: Schema-aware clarification check.
+        """
+        logger.info("Executing Phase B: Schema-aware clarification check")
+        
+        # Skip Phase B if Agent 1 failed (no tables selected)
+        if not state.final_tables or not state.table_contexts:
+            logger.info("Phase B: Skipping — no tables selected by Agent 1")
+            return state
+        
+        # Skip Phase B if this is an error retry (Agent 3 routed back)
+        # On retries, error_retry_check is handled separately in Agent 3's routing
+        if state.retry_count > 0:
+            logger.info("Phase B: Skipping — this is a retry, not first pass")
+            return state
+        
+        try:
+            phase_b_result = self.clarification_tool.phase_b_schema_validation(
+                user_query=state.user_query,
+                table_contexts=state.table_contexts,
+                final_tables=state.final_tables,
+                refined_query=state.refined_query,
+            )
+            
+            # Apply auto-resolutions to refined query if any
+            if phase_b_result.get("refined_query"):
+                logger.info(f"Phase B: Auto-resolutions applied to query")
+                state.refined_query = phase_b_result["refined_query"]
+            
+            if phase_b_result.get("auto_resolutions"):
+                logger.info(f"Phase B: {len(phase_b_result['auto_resolutions'])} auto-resolutions applied")
+            
+            # Check if user input needed
+            if phase_b_result.get("needs_clarification"):
+                logger.info("Phase B: Clarification needed — halting workflow")
+                state.needs_schema_clarification = True
+                state.schema_clarification_request = phase_b_result["clarification_request"]
+                state.route_to_agent = "clarification_needed"
+            else:
+                logger.info("Phase B: All clear — proceeding to Agent 2")
+            
+        except Exception as e:
+            logger.error(f"Phase B check failed: {e}", exc_info=True)
+            # On failure, don't block — proceed to Agent 2
+            logger.info("Phase B: Failed, proceeding without clarification")
+        
+        return state
+    
+    def _phase_b_routing_decision(self, state: AgentState) -> str:
+        """Route after Phase B check"""
+        if isinstance(state, dict):
+            needs_clarification = state.needs_schema_clarification
+            route = state.route_to_agent
+        else:
+            needs_clarification = state.needs_schema_clarification
+            route = state.route_to_agent
+        
+        if needs_clarification:
+            logger.info("Phase B routing: clarification_needed — halting workflow")
+            return "clarification_needed"
+        
+        # Check if Agent 1 failed
+        if route == "complete":
+            logger.info("Phase B routing: Agent 1 failed — completing")
+            return "complete"
+        
+        logger.info("Phase B routing: proceeding to Agent 2")
+        return "agent_2"
+    
     @observe(name="workflow_node_agent_2", as_type="span")
     def _run_agent_2(self, state: AgentState) -> AgentState:
         """Execute Agent 2 (SQL Generator)"""
@@ -122,7 +209,7 @@ class AgentWorkflow:
             Determine next step after Agent 3.
         """
         if isinstance(state, dict):
-            route = state.get("route_to_agent")
+            route = state.route_to_agent
         else:
             route = state.route_to_agent
         
@@ -167,6 +254,17 @@ class AgentWorkflow:
                 final_state = AgentState(**result)
             else:
                 final_state = result
+                
+            # Check if workflow halted for clarification
+            if final_state.needs_schema_clarification:
+                logger.info("WORKFLOW PAUSED — awaiting user clarification")
+                self.langfuse.update_current_span(
+                    output={
+                        "workflow_paused": True,
+                        "reason": "schema_clarification_needed"
+                    }
+                )
+                return final_state
             
             logger.info("WORKFLOW COMPLETED")
             logger.info(f"Success: {final_state.execution_success}")
@@ -174,8 +272,6 @@ class AgentWorkflow:
             
             if final_state.is_retry_success:
                 logger.info("Note: Success was achieved after retry (lesson extracted)")
-                
-            logger.info(f"Total Time: {final_state.total_time_ms}ms")
             
             self.langfuse.update_current_span(
                 output={

@@ -5,9 +5,15 @@ from datetime import datetime
 
 class ClarificationRequest(BaseModel):
     """MCQ clarification request"""
+    
+    clarification_type: str = "mcq"  # "mcq" | "yes_no" | "suggestion" | "open_text"
     question: str
-    options: List[str]
-    detected_ambiguity: str
+    options: List[str] = Field(default_factory=list)  # For MCQ type
+    suggested_action: Optional[str] = None          # For suggestion type: system auto-proceeds with this if user doesn't object
+    suggested_interpretation: Optional[str] = None
+    proposed_interpretation: Optional[str] = None   # For yes_no type
+    detected_ambiguity: str = ""
+    trigger_phase: str = "pre_schema"  # "pre_schema" | "post_schema" | "error_retry"
     
 class AgentState(BaseModel):
     kg_id: UUID
@@ -35,6 +41,14 @@ class AgentState(BaseModel):
     table_contexts: Dict[str, Dict] = Field(default_factory=dict)  # Full KG context per table
     schema_retrieval_time_ms: Optional[int] = None
     
+    # Schema-aware clarification (Phase B) 
+    needs_schema_clarification: bool = False
+    schema_clarification_request: Optional[ClarificationRequest] = None
+    
+    # Error retry context - passed when Agent 3 routes back
+    retry_error_context: Optional[str] = None  # Error message from failed attempt
+    retry_error_category: Optional[str] = None  # Error category from failed attempt
+    
     # Phase 3: SQL Generation (Agent 2)
     similar_past_queries: List[Dict[str, Any]] = Field(default_factory=list)
     generated_sql: Optional[str] = None
@@ -57,7 +71,7 @@ class AgentState(BaseModel):
     retry_count: int = 0
     max_retries: int = 3
     error_history: List[Dict[str, Any]] = Field(default_factory=list)
-    route_to_agent: Optional[str] = None  # "agent_1", "agent_2", "agent_3", or "complete"
+    route_to_agent: Optional[str] = None  # "agent_1", "agent_2", "agent_3", "clarification_needed" or "complete"
     
     is_retry_success: bool = False
     previous_error_message: Optional[str] = None
