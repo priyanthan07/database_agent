@@ -139,6 +139,10 @@ class AgentWorkflow:
             logger.info("Phase B: Skipping — this is a retry, not first pass")
             return state
         
+        if state.clarifications_provided:
+            logger.info("Phase B: Skipping — user already provided clarification response")
+            return state
+        
         try:
             phase_b_result = self.clarification_tool.phase_b_schema_validation(
                 user_query=state.user_query,

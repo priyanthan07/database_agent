@@ -221,7 +221,8 @@ def init_session_state():
             "database": "",
             "user": "postgres",
             "password": ""
-        }
+        },
+        "show_workflow": False
     }
     
     for key, value in defaults.items():
@@ -334,6 +335,26 @@ def render_sidebar():
         # Optional: Show last trace ID if available
         if "last_trace_id" in st.session_state and st.session_state.last_trace_id:
             st.caption(f"Last Trace ID: {st.session_state.last_trace_id[:8]}...")
+        
+        # Workflow Visualization
+        if st.session_state.agent_service:
+            st.markdown("**Workflow**")
+            if st.checkbox("Show Agent Graph", value=st.session_state.show_workflow, key="workflow_toggle"):
+                st.session_state.show_workflow = True
+                try:
+                    graph = st.session_state.agent_service.workflow.graph
+                    mermaid_png = graph.get_graph().draw_mermaid_png()
+                    st.image(mermaid_png, caption="LangGraph Workflow")
+                except Exception:
+                    try:
+                        mermaid_str = st.session_state.agent_service.workflow.graph.get_graph().draw_mermaid()
+                        st.code(mermaid_str, language="mermaid")
+                    except Exception as e:
+                        st.caption(f"Could not render: {e}")
+            else:
+                st.session_state.show_workflow = False
+            
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
         st.markdown("**Display**")
         st.session_state.show_sql = st.checkbox("Show SQL", value=st.session_state.show_sql)

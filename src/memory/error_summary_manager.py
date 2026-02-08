@@ -382,9 +382,11 @@ class ErrorSummaryManager:
         2. lesson_rule: Write a concise rule (max 30 words) that would prevent this issue in future queries.
 
         Guidelines for lesson_type:
-        - schema: Wrong tables selected, missing columns, incorrect relationships, missing enrichment tables
-        - sql: Syntax errors, incorrect joins, wrong aggregations, data type issues, logic errors, result quality issues
-
+        - schema: Agent 1 selected the WRONG TABLES or MISSED tables entirely. The issue is WHICH tables were chosen, not how they were queried.
+        - sql: Agent 2 wrote the SQL incorrectly. This includes wrong WHERE clauses, missing JOINs, wrong aggregations, incorrect filtering logic, not using available columns properly, or not leveraging table relationships in the query. If the right tables were selected but the query logic is wrong, this is ALWAYS an sql lesson.
+        
+        Key distinction: If the correct tables were selected but the SQL doesn't use them properly (wrong filters, missing hierarchy traversal, incorrect joins), that is an 'sql' lesson, NOT a 'schema' lesson.
+        
         Guidelines for lesson_rule:
         - Focus on the ROOT CAUSE indicated by feedback
         - Make it actionable and specific
@@ -443,9 +445,9 @@ class ErrorSummaryManager:
                     2. lesson_rule: Write a concise rule (max 30 words) that would prevent this error in future queries.
 
                     Guidelines for lesson_type:
-                    - schema: About which tables to include, column selection, relationships, missing tables
-                    - sql: About syntax, joins, aggregations, filters, data types, column references
-
+                    - schema: Agent 1 selected the WRONG TABLES or MISSED tables entirely. The issue is WHICH tables were chosen.
+                    - sql: Agent 2 wrote the SQL incorrectly — wrong WHERE clauses, filters, aggregations, joins, or not using available columns/relationships properly. If correct tables were selected but query logic is wrong, this is ALWAYS 'sql'.
+                    
                     Rule format: "When [condition], [action]" or "Always/Never [action] when [condition]"
                 """
         try:

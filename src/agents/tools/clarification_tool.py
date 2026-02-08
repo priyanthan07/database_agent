@@ -240,19 +240,52 @@ class ClarificationTool:
 
             # There are unresolvable mismatches — need user input
             unresolvable = [m for m in result.mismatches if not m.can_auto_resolve]
+            
+            # Split: terms with NO candidates should be auto-resolved (dropped with a note),
+            # only terms with MULTIPLE candidates need user input
+            no_match_terms = [m for m in unresolvable if not m.matched_candidates]
+            multi_match_terms = [m for m in unresolvable if m.matched_candidates]
+            
             logger.info(f"Phase B: {len(unresolvable)} unresolvable mismatches found")
+            logger.info(f"Phase B: {len(no_match_terms)} no-match terms (will auto-resolve), {len(multi_match_terms)} multi-match terms (need user input)")
 
-            clarification = self._build_phase_b_clarification(
-                query, unresolvable, table_contexts
-            )
+            # Auto-resolve no-match terms by adding "not available" hints
+            no_match_hints = []
+            for m in no_match_terms:
+                hint = f'"{m.user_term}" has no match in the database schema — omit from results'
+                no_match_hints.append(hint)
+                logger.info(f"Phase B: Auto-dropping unmatched term: '{m.user_term}'")
 
-            return {
-                "needs_clarification": True,
-                "clarification_request": clarification,
-                "auto_resolutions": result.auto_resolutions_applied,
-                "refined_query": None,
-            }
-
+            # Apply no-match hints to the query
+            updated_query = query
+            if no_match_hints:
+                all_hints = list(result.auto_resolutions_applied or []) + no_match_hints
+                updated_query = query + " [Context: " + "; ".join(no_match_hints) + "]"
+                
+            # Only ask user if there are terms with multiple valid candidates
+            if multi_match_terms:
+                logger.info(f"Phase B: {len(multi_match_terms)} terms need user clarification")
+                
+                clarification = self._build_phase_b_clarification(
+                    query, multi_match_terms, table_contexts
+                )
+                
+                return {
+                    "needs_clarification": True,
+                    "clarification_request": clarification,
+                    "auto_resolutions": (result.auto_resolutions_applied or []) + no_match_hints,
+                    "refined_query": updated_query if updated_query != query else None,
+                }
+            else:
+                # All unresolvable terms were no-match — auto-resolved, proceed
+                logger.info("Phase B: All unresolvable terms were no-match — auto-resolved, proceeding")
+                return {
+                    "needs_clarification": False,
+                    "auto_resolutions": (result.auto_resolutions_applied or []) + no_match_hints,
+                    "refined_query": updated_query if updated_query != query else None,
+                }
+                
+                
         except Exception as e:
             logger.error(f"Phase B failed: {e}")
             # On failure, don't block — proceed without clarification

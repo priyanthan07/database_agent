@@ -254,10 +254,12 @@ class AgentService:
         if not clarifications:
             return user_query
         
-        refined = user_query
-        
+        # Build meaningful context from clarification Q&A pairs
+        context_parts = []
         for question, answer in clarifications.items():
-            refined += f" ({answer})"
+            context_parts.append(f"User clarified '{question}': {answer}")
+        
+        refined = user_query + " [Clarification: " + "; ".join(context_parts) + "]"
         
         logger.info(f"Refined query: '{refined}'")
         return refined
